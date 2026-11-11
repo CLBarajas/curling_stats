@@ -139,3 +139,54 @@ def test_the_crossing_is_kept_on_the_shot_even_when_refused():
                            color="red", t_hog_s=None, v_hog_m_s=None, hog_crossing=None)
     hogtime.time_hog_crossings([shot], "v.mp4", view, find=lambda *a: refused)
     assert shot.hog_crossing is refused and shot.t_hog_s is None
+
+
+class TestRetimeReleased:
+    """A crossing read back from the arrival is read again once the long
+    camera has given the shot a release (Rochester, sheet A: 18 rocks)."""
+
+    def test_a_shot_given_a_release_is_read_again_from_it(self):
+        shot = a_shot(1, "red", 100.0, t_enter=95.0)
+        hogtime.time_hog_crossings([shot], "v.mp4", object(),
+                                   find=Recorder(lambda c, lo, hi: Crossing(None, "none")))
+        unreleased = [shot]
+        shot.release = types.SimpleNamespace(t=60.0)
+        rec = Recorder(lambda c, lo, hi: Crossing(lo + 3.0, "ok", speed_m_s=2.1,
+                                                  samples=((lo + 3.0, 1.0, 2.0, 3.0),)))
+        assert hogtime.retime_released([shot], unreleased, "v.mp4", object(), find=rec) == 1
+        lo, hi = 60.0 + longview.WINDOW_S[0], 60.0 + longview.WINDOW_S[1]
+        assert rec.calls == [("red", lo, hi)]
+        assert shot.t_hog_s == pytest.approx(lo + 3.0) and shot.v_hog_m_s == pytest.approx(2.1)
+
+    def test_a_refused_read_with_a_track_replaces_the_time_too(self):
+        shot = a_shot(1, "red", 100.0, t_rel=60.0)
+        shot.t_hog_s, shot.v_hog_m_s = 85.0, 1.9
+        refused = Crossing(None, "speed 0.99 m/s is not a delivery", longview.KEY_BAD_SPEED,
+                           samples=((62.0, 1.0, 2.0, 3.0),))
+        hogtime.retime_released([shot], [shot], "v.mp4", object(), find=lambda *a: refused)
+        assert shot.hog_crossing is refused and shot.t_hog_s is None
+
+    def test_a_read_with_no_samples_leaves_the_shot_as_it_was(self):
+        shot = a_shot(1, "red", 100.0, t_rel=60.0)
+        shot.t_hog_s = 85.0
+        n = hogtime.retime_released([shot], [shot], "v.mp4", object(),
+                                    find=lambda *a: Crossing(None, "nothing seen"))
+        assert n == 0 and shot.t_hog_s == 85.0
+
+    def test_only_shots_that_had_no_release_and_have_one_now_are_read(self):
+        had = a_shot(1, "red", 100.0, t_rel=60.0)
+        still_none = a_shot(2, "yellow", 130.0)
+        missing = a_shot(3, "red", 160.0, t_rel=140.0)
+        missing.missing = True
+        rec = Recorder()
+        assert hogtime.retime_released([had, still_none, missing], [still_none, missing],
+                                       "v.mp4", object(), find=rec) == 0
+        assert rec.calls == []
+
+    def test_it_never_changes_the_shot_list(self):
+        shots = [a_shot(1, "red", 100.0, t_rel=60.0), a_shot(2, "yellow", 130.0, t_rel=110.0)]
+        before = [id(s) for s in shots]
+        hogtime.retime_released(shots, list(shots), "v.mp4", object(),
+                                find=Recorder(lambda c, lo, hi: Crossing(lo + 1, "ok",
+                                              samples=((lo + 1, 0, 0, 0),))))
+        assert [id(s) for s in shots] == before

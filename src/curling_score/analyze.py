@@ -828,11 +828,19 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
                     # The releases the throwing panel lost -- a thrower whose body hides
                     # the stone from above -- from hogtime's camera, which faces the
                     # delivery. Before the brooms and lines: both read what it gives.
+                    unreleased = [s for s in shots if getattr(s, "release", None) is None]
                     n_side = sidereleases.time_side_releases(
                         shots, path, sideviews[hogtime.CAMERA_FOR[OTHER_HOUSE[end.house]]])
                     stages.mark("side")
                     if n_side:
                         progress(f"    end {end.number}: {n_side} release(s) from the long camera")
+                        # Their crossings were read back from the arrival; a
+                        # release is the better anchor, and the lines need it.
+                        n_again = hogtime.retime_released(
+                            shots, unreleased, path,
+                            sideviews[hogtime.CAMERA_FOR[OTHER_HOUSE[end.house]]])
+                        progress(f"    end {end.number}: {n_again} hog crossing(s) read "
+                                 f"again from those releases")
                     # Such a rock was kept for hogtime's window, which hangs off
                     # its arrival; its delivery read decodes past it.
                     releasetime.follow_releases(keeper, shots)
