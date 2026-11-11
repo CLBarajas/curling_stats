@@ -416,7 +416,8 @@ def apply_edits(root, split: str, rejects, adds=(), *, keep_empty=False,
     false positives on people, which makes them the most valuable negatives in
     the set -- deleting them throws away the very correction just made.
 
-    ``box_for(stem) -> (w, h)`` sizes an added box. Across 120 videos there are
+    ``box_for(stem) -> (w, h)`` sizes an added box, or ``((w, h), (w, h))``
+    for its size at the image's top and bottom edges. Across 120 videos there are
     120 different values of ``px_per_m``, so the fallback of borrowing the
     set's median box is wrong nearly everywhere; a caller holding the manifest
     can size it properly.
@@ -436,9 +437,12 @@ def apply_edits(root, split: str, rejects, adds=(), *, keep_empty=False,
     wanted = set(rejects)
     by_frame: dict[str, list] = {}
     for key in adds:
-        stem, pos, cls = key.split("|")
+        # An optional fourth part is the box's own (w, h): a recoloured box
+        # keeps the size of the one it replaced.
+        stem, pos, cls, *dims = key.split("|")
         cx, cy = (float(v) for v in pos.split(","))
-        by_frame.setdefault(stem, []).append((int(cls), cx, cy))
+        own = tuple(float(v) for v in dims[0].split(",")) if dims else None
+        by_frame.setdefault(stem, []).append((int(cls), cx, cy, own))
 
     # Added boxes take the size the caller gives, else the size every other box
     # in that frame has, else the set's median.
@@ -500,8 +504,15 @@ def apply_edits(root, split: str, rejects, adds=(), *, keep_empty=False,
         counts["removed"] += len(current) - len(keep)
         sized = box_for(stem) if box_for else None
         new_boxes = []
-        for cls, cx, cy in by_frame.get(stem, ()):
-            if sized:
+        for cls, cx, cy, own in by_frame.get(stem, ()):
+            if own:
+                w, h = own
+            elif sized and isinstance(sized[0], (tuple, list)):
+                # The size at the top edge and at the bottom, for a camera
+                # whose stones grow toward it: by the row the box is on.
+                (w0, h0), (w1, h1) = sized
+                w, h = w0 + (w1 - w0) * cy, h0 + (h1 - h0) * cy
+            elif sized:
                 w, h = sized
             elif current:
                 w, h = current[0].w, current[0].h
@@ -538,7 +549,8 @@ def apply_rejections(root, split: str, rejects) -> tuple:
 class FrameMeta:
     """What the manifest knows about a frame that the label file does not."""
 
-    box: tuple | None = None      # normalised (w, h) for a box added here
+    box: tuple | None = None      # normalised (w, h) for a box added here, or
+                                  # ((w, h) at the top edge, (w, h) at the bottom)
     url: str | None = None        # deep link to this moment in the video
     kind: str = ""                # "motion" marks a frame with a stone in flight
     neighbours: tuple = ()        # paths to the frames either side, for motion
@@ -567,6 +579,7 @@ def _card(frame, out_dir, meta=None):
                  f"width:{b.w * 100:.3f}%;height:{b.h * 100:.3f}%")
         key = _html.escape(reject_key(frame.image.stem, b))
         boxes.append(f'<b class="bx {b.color}" style="{style}" data-k="{key}" data-i="{i}"'
+                     f' data-c="{b.color}" data-g="{b.cx:.4f},{b.cy:.4f},{b.w:.4f},{b.h:.4f}"'
                      f' title="{i}: {b.color} {b.cx:.3f},{b.cy:.3f}"></b>')
         chips.append(f'<button type="button" class="chip {b.color}" data-k="{key}"'
                      f' title="reject or keep box {i}">{i} {b.color}</button>')
@@ -578,7 +591,14 @@ def _card(frame, out_dir, meta=None):
     # A box added to an empty frame has nothing to copy a size from, and the
     # set's median is wrong nearly everywhere when it spans 120 videos with 120
     # different scales. The manifest knows the right answer.
-    if info.box:
+    # A pair of pairs is the size at the image's top edge and at its bottom
+    # edge, for a camera whose stones grow toward it (an end camera): the page
+    # sizes an added box by the row it is clicked on.
+    far = ""
+    if info.box and isinstance(info.box[0], (tuple, list)):
+        (w, h), (w1, h1) = info.box
+        far = f' data-w1="{w1:.6f}" data-h1="{h1:.6f}"'
+    elif info.box:
         w, h = info.box
     elif frame.boxes:
         w, h = frame.boxes[0].w, frame.boxes[0].h
@@ -605,7 +625,7 @@ def _card(frame, out_dir, meta=None):
             f'<code>{_html.escape(frame.seq)}</code> '
             f'{frame.t:.1f}s &middot; {len(frame.boxes)} labels{empty}{link}{note}</figcaption>'
             f'<div class="wrap" data-stem="{_html.escape(frame.image.stem)}"'
-            f' data-w="{w:.6f}" data-h="{h:.6f}">'
+            f' data-w="{w:.6f}" data-h="{h:.6f}"{far}>'
             f'<img src="{name}" loading="lazy" alt="">'
             + "".join(boxes) + "</div>" + chip_row + thumbs + "</figure>")
 
@@ -692,6 +712,18 @@ _CLICK_JS = """
   const load = (k) => new Set(JSON.parse(localStorage.getItem(k) || "[]"));
   let rejects = load(RKEY), adds = load(AKEY), seen = load(SKEY);
   let mode = "reject";
+  // What this club calls each class ("yellow" is blue at Rochester). Display
+  // only: keys, classes and the export keep the model's names.
+  const NAMES = JSON.parse(document.body.dataset.names || "{}");
+  const shown = (c) => NAMES[c] || c;
+  for (const [c, name] of Object.entries(NAMES)) {
+    for (const el of document.querySelectorAll('.mode button[data-mode="' + c + '"]'))
+      el.textContent = name;
+    for (const el of document.querySelectorAll(".chip." + c))
+      el.textContent = el.textContent.replace(c, name);
+    for (const el of document.querySelectorAll(".bx." + c))
+      el.title = el.title.replace(c, name);
+  }
 
   // Read-modify-write, not write-the-whole-set. With the review split over ten
   // pages a second open tab would otherwise overwrite whatever the first had
@@ -716,11 +748,18 @@ _CLICK_JS = """
   function renderAdds() {
     for (const el of document.querySelectorAll(".bx.new")) el.remove();
     for (const key of adds) {
-      const [stem, pos, cls] = key.split("|");
+      const [stem, pos, cls, dims] = key.split("|");
       const wrap = document.querySelector('.wrap[data-stem="' + CSS.escape(stem) + '"]');
       if (!wrap) continue;
       const [cx, cy] = pos.split(",").map(Number);
-      const w = Number(wrap.dataset.w), h = Number(wrap.dataset.h);
+      let w = Number(wrap.dataset.w), h = Number(wrap.dataset.h);
+      if (dims) {
+        // A recoloured box keeps the size of the one it replaces.
+        [w, h] = dims.split(",").map(Number);
+      } else if (wrap.dataset.w1) {
+        w += (Number(wrap.dataset.w1) - w) * cy;
+        h += (Number(wrap.dataset.h1) - h) * cy;
+      }
       const b = document.createElement("b");
       b.className = "bx new " + (cls === "0" ? "red" : "yellow");
       b.style.left = ((cx - w / 2) * 100).toFixed(3) + "%";
@@ -728,7 +767,7 @@ _CLICK_JS = """
       b.style.width = (w * 100).toFixed(3) + "%";
       b.style.height = (h * 100).toFixed(3) + "%";
       b.dataset.add = key;
-      b.title = "added " + (cls === "0" ? "red" : "yellow") + " - click to undo";
+      b.title = "added " + shown(cls === "0" ? "red" : "yellow") + " - click to undo";
       wrap.appendChild(b);
     }
   }
@@ -787,6 +826,22 @@ _CLICK_JS = """
       paint(); return;
     }
     const boxEl = ev.target.closest(".bx") || ev.target.closest(".chip");
+    // With a colour picked, a click on a box of the other colour recolours
+    // it: the box is rejected and one of the picked colour is added in its
+    // exact place and size. Clicking the new box undoes the addition, and the
+    // old one again brings it back.
+    const flip = ev.target.closest(".bx");
+    if (flip && mode !== "reject" && flip.dataset.c && flip.dataset.c !== mode
+        && !rejects.has(flip.dataset.k)) {
+      const [cx, cy, w, h] = flip.dataset.g.split(",").map(Number);
+      const stem = flip.closest(".wrap").dataset.stem;
+      const key = stem + "|" + cx.toFixed(3) + "," + cy.toFixed(3) + "|"
+                  + (mode === "red" ? "0" : "1") + "|" + w.toFixed(4) + "," + h.toFixed(4);
+      rejects = mutate(RKEY, (s) => s.add(flip.dataset.k));
+      adds = mutate(AKEY, (s) => s.add(key));
+      if (fig) markSeen(fig.dataset.stem);
+      paint(); return;
+    }
     if (boxEl) {
       const k = boxEl.dataset.k;
       rejects = mutate(RKEY, (s) => (s.has(k) ? s.delete(k) : s.add(k)));
@@ -815,6 +870,8 @@ _CLICK_JS = """
     if (ev.target.matches("input, textarea")) return;
     if (ev.key === "r") setMode("red");
     else if (ev.key === "y") setMode("yellow");
+    else if (NAMES.red && ev.key === NAMES.red[0] && ev.key !== "y") setMode("red");
+    else if (NAMES.yellow && ev.key === NAMES.yellow[0] && ev.key !== "r") setMode("yellow");
     else if (ev.key === "Escape") setMode("reject");
   });
 
@@ -827,6 +884,20 @@ _CLICK_JS = """
     paint();
   });
   document.getElementById("hide").addEventListener("change", paint);
+  // How wide a frame is drawn: an end camera's 950 px crop at 300 px hides
+  // what the reviewer is there to find. Kept for the next visit.
+  const size = document.getElementById("size");
+  function setSize(v) {
+    document.getElementById("grid").style.gridTemplateColumns = v === "300" ? "" :
+      "repeat(auto-fill,minmax(min(" + v + "px,100%),1fr))";
+  }
+  try { size.value = localStorage.getItem("labels:size") || "300"; } catch (e) {}
+  if (!size.value) size.value = "300";
+  setSize(size.value);
+  size.addEventListener("change", () => {
+    setSize(size.value);
+    try { localStorage.setItem("labels:size", size.value); } catch (e) {}
+  });
 
   document.getElementById("dl").addEventListener("click", () => {
     const payload = {scope: SCOPE, reject: [...rejects], add: [...adds],
@@ -877,20 +948,48 @@ def _bar(nav: str = "") -> str:
         ' <button data-mode="yellow">yellow</button></span>\n'
         '  <button id="allseen">mark page done</button>\n'
         '  <label><input type="checkbox" id="hide"> hide done</label>\n'
+        '  <label>size <select id="size"><option value="300">small</option>'
+        '<option value="600">medium</option><option value="1000">large</option>'
+        '</select></label>\n'
         '  <button class="primary" id="dl">Export edits</button>\n'
         '  <button id="clear">Clear all</button>\n'
         f"  {nav}\n</div>\n"
     )
 
 
-def _page_html(title, scope, total, cards, heading, nav="", extra=""):
+def _display_bits(class_display):
+    """``(style, body attribute, help line)`` for a club whose stones are not
+    red and yellow: ``{1: ("blue", "#2f6fdf")}`` paints and names the
+    yellow_stone class as blue. The class, the label files and the exported
+    edits are unchanged."""
+    import html as _html
+    import json as _json
+
+    if not class_display:
+        return "", "", ""
+    names, css, said = {}, [], []
+    for cls, (name, colour) in sorted(class_display.items()):
+        internal = CLASS_NAMES[cls]
+        names[internal] = name
+        css.append(f".bx.{internal},.chip.{internal}{{border-color:{colour}}}")
+        said.append(f"<b>{_html.escape(name)}</b> stones are the {internal} class here "
+                    f"(press <b>{_html.escape(name[0])}</b> or <b>{internal[0]}</b>)")
+    return (f"<style>{''.join(css)}</style>\n",
+            f" data-names='{_html.escape(_json.dumps(names), quote=True)}'",
+            f'  <div class="muted">{"; ".join(said)}.</div>\n')
+
+
+def _page_html(title, scope, total, cards, heading, nav="", extra="", class_display=None):
     import html as _html
 
+    style, names_attr, said = _display_bits(class_display)
+    extra = said + extra
     return (
         '<!doctype html>\n<meta charset="utf-8">\n'
         f"<title>{_html.escape(title)}</title>\n"
         '<link rel="stylesheet" href="review.css">\n'
-        f'<body data-scope="{_html.escape(scope)}" data-total="{total}">\n'
+        f"{style}"
+        f'<body data-scope="{_html.escape(scope)}" data-total="{total}"{names_attr}>\n'
         '<div class="top">\n'
         f"  <h1>{_html.escape(title)}</h1>\n"
         f'  <div class="muted">{heading}</div>\n{extra}'
@@ -902,7 +1001,8 @@ def _page_html(title, scope, total, cards, heading, nav="", extra=""):
 
 
 def render_clickable(frames_to_show, out_dir, title="Label fixing",
-                     scope="default", per_page: int = 200, meta=None):
+                     scope="default", per_page: int = 200, meta=None,
+                     class_display=None):
     """A page where every label is a box you can click to reject.
 
     The boxes are HTML positioned over the image rather than drawn into it, so
@@ -923,6 +1023,11 @@ def render_clickable(frames_to_show, out_dir, title="Label fixing",
     ``meta`` maps a frame stem to a :class:`FrameMeta`: the box size to give an
     added stone, a deep link to the moment in the video, and for a frame with a
     stone in flight, the frames either side.
+
+    ``class_display`` maps a class to the ``(name, colour)`` a club's stones
+    really have -- ``{1: ("blue", "#2f6fdf")}`` where blue stones are the
+    yellow_stone class -- so the page says and draws blue. Nothing exported
+    changes.
     """
     import html as _html
 
@@ -938,7 +1043,7 @@ def render_clickable(frames_to_show, out_dir, title="Label fixing",
     if total <= per_page:
         cards = "\n".join(_card(f, out_dir, meta.get(f.image.stem)) for f in frames)
         page = out_dir / "index.html"
-        page.write_text(_page_html(title, scope, total, cards, _HELP))
+        page.write_text(_page_html(title, scope, total, cards, _HELP, class_display=class_display))
         return page, total
 
     chunks = [frames[i:i + per_page] for i in range(0, total, per_page)]
@@ -954,7 +1059,8 @@ def render_clickable(frames_to_show, out_dir, title="Label fixing",
         first, last = i * per_page + 1, i * per_page + len(chunk)
         head = f"Frames {first}-{last} of {total}. {_HELP}"
         (out_dir / name).write_text(
-            _page_html(f"{title} \u2014 page {i + 1}", scope, total, cards, head, nav))
+            _page_html(f"{title} \u2014 page {i + 1}", scope, total, cards, head, nav,
+                       class_display=class_display))
 
     rows = []
     for i, (chunk, name) in enumerate(zip(chunks, names)):
