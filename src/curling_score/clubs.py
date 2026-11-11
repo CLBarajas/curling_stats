@@ -56,6 +56,9 @@ class Club:
     panel_layout: PanelLayout | None = None
     # The rows of the side views that are ice and not broadcast graphics.
     side_rows: tuple[int, int] | None = None
+    # A composite whose side cameras are not either side of a centre strip of
+    # overheads (Rochester's sit above them): each one's rect, by side.
+    side_rects: dict | None = None
     # Rows of each long camera that hold a logo painted on the ice that both
     # see, to tie the two cameras' fits together by (`logotie`): side -> rows.
     logo_rows: dict | None = None

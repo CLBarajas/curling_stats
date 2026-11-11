@@ -57,6 +57,9 @@ class EndPaint:
     # The fewest rows a painted centre line must be traced on: fewer where
     # logos on the ice break up a faint line, as at Martensville.
     centre_min_rows: int = _CL_MIN_ROWS
+    # How far below the house a dark hog line is looked for: further where the
+    # camera sits well behind its hog line, as Rochester's do.
+    hog_search_rows: int = 200
 
 
 @dataclass(frozen=True)
@@ -127,11 +130,11 @@ def hog_row(view, below_row: int, colour: str = "red") -> float:
     return below_row + float(i)
 
 
-def dark_hog_row(view, below_row: int) -> float:
-    """A dark hog line: the darkest row in the 200 below the house, sub-pixel."""
+def dark_hog_row(view, below_row: int, search_rows: int = 200) -> float:
+    """A dark hog line: the darkest row in the ``search_rows`` below the house, sub-pixel."""
     v = view.astype(np.float32)
     w = v.shape[1]
-    lum = v[below_row:below_row + 200, int(w * 0.3):int(w * 0.7)].mean(axis=(1, 2))
+    lum = v[below_row:below_row + search_rows, int(w * 0.3):int(w * 0.7)].mean(axis=(1, 2))
     if len(lum) < 3:
         raise SideViewError("no ice below the house to look for a hog line")
     i = int(np.argmin(lum))
@@ -223,7 +226,8 @@ def solve(plate, rect, paint: EndPaint, name: str = "end", end_camera: bool = Tr
     view = np.ascontiguousarray(np.asarray(plate)[y0:y0 + h, x0:x0 + w])
     outer, inner = ring_edges(view, paint)
     below = int(outer[:, 1].max()) + 20
-    hog = dark_hog_row(view, below) if paint.hog == "dark" else hog_row(view, below, paint.hog)
+    hog = (dark_hog_row(view, below, paint.hog_search_rows) if paint.hog == "dark"
+           else hog_row(view, below, paint.hog))
     pts = np.vstack([outer, inner])
     radii = np.r_[np.full(len(outer), C.R_12FT_M), np.full(len(inner), paint.inner_radius_m)]
     xl, xr = outer[:, 0].min(), outer[:, 0].max()

@@ -348,6 +348,8 @@ class BoardRead:
 
 
 def _side_rects(panels, club, w, h):
+    if club.side_rects is not None:
+        return dict(club.side_rects)
     rects = sideview.locate(panels, width=w, height=h)
     if club.side_rows is not None:
         y0, y1 = club.side_rows
