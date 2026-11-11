@@ -4,7 +4,7 @@ Granite, where all of this was built, is the default everywhere; another club
 is a profile here rather than a branch through the code.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from curling_score.game.fixedboard import FixedBoard
 from curling_score.geometry import constants as C
@@ -214,7 +214,63 @@ DALLAS = Club("dallas", (
     # or read them as yellow (dfw1, dfw2).
     overhead_model="dfw1b.pt", side_model="dfw2c.pt")
 
-CLUBS = {c.name: c for c in (GRANITE, CINCINNATI, SWIFT_CURRENT, ARDSLEY, MARTENSVILLE, DALLAS)}
+# Rochester Curling Club's stream (one YouTube channel a sheet, 1920x1080,
+# measured on Go_JOSxJPsQ, sheet A): two end cameras fill the top of the frame
+# side by side, each above its own hog line looking back at its own house, as
+# Cincinnati's do. The overheads are two small insets in the bottom corners,
+# framed in blue, showing the house only (about 82 px/m) with the hack end at
+# the top, so stones enter from the bottom of both. A camera on the wall
+# scoreboard fills the bottom centre. The left house paints 12-to-8 teal
+# around a purple 4-foot and a white button; the right house the reverse. The
+# paint is pale on video (S 20-80 against ice at S < 12) and the frame's blue
+# (H 101-103, S 150+) sits between the two hues. Hog lines are dark grey; the
+# centre line is painted. The stones are red and blue.
+_RCC_TEAL = ((70, 18, 60), (99, 140, 240))
+_RCC_PURPLE = ((112, 18, 60), (145, 140, 240))
+ROCHESTER = Club("rochester", (
+    ("top", Panel("bottom", HousePaint(twelve_ft=(_RCC_TEAL,), four_ft=(_RCC_PURPLE,)))),
+    ("bottom", Panel("bottom", HousePaint(twelve_ft=(_RCC_PURPLE,), four_ft=(_RCC_TEAL,)))),
+), end_cameras={
+    "top": ("left", EndPaint(ring=(_RCC_TEAL,), inner_radius_m=C.R_8FT_M, hog="dark",
+                             hog_search_rows=340)),
+    "bottom": ("right", EndPaint(ring=(_RCC_PURPLE,), inner_radius_m=C.R_8FT_M, hog="dark",
+                             hog_search_rows=340)),
+}, panel_layout=PanelLayout(top=(6, 733, 310, 341), bottom=(1604, 734, 310, 340)),
+    side_rects={"left": (6, 6, 950, 838), "right": (964, 6, 950, 838)},
+    one_game_per_stream=True,
+    # The overheads end 2 m in front of the tee, so a guard is in neither: the
+    # end camera facing the house places it (`game/longguards.py`). Read 10 s
+    # after the far hog line: Go_JOSxJPsQ end 3's blue guard crossed at 38:26,
+    # was still sliding at 3.7 m at 38:32 and stopped at 2.4 m by 38:36.
+    guards_from_long_m=1.7, guards_after_far_s=10.0,
+    # One channel a sheet, @RCCStreamingSheetA to D, each stream one game.
+    # Everything here was measured on sheet A (UCC4CItKubmNVSPpsDInEcWQ);
+    # sheet C (UCsAcOSWFFZDKce1DL5umYOA) is painted the same way. Its own
+    # models mean no channel id picks this profile: a worker is set up with
+    # CLUB=rochester, as Dallas's is.
+    # overhead-3 has never seen a blue stone and missed every one (rcc1);
+    # blue is the yellow_stone class.
+    # long-1 found fewer than one blue stone in four on the end cameras, and
+    # half its boxes were not stones (rcc2).
+    overhead_model="rcc1b.pt", side_model="rcc2b.pt",
+    stone_display={"yellow": {"name": "Blue", "color": "#4d8ef0"}},
+    # The board camera, bottom centre, as sheet A frames it: red's cards hang
+    # on the red band above the strip, blue's on the pale band below.
+    board=FixedBoard(rect=(322, 850, 1276, 226), top="red", bottom="yellow"))
+
+# Sheets B and D: the same composite, the two houses' paint the other way
+# round -- purple on the left, teal on the right (JA_qWEzaABk, Vu6sd-fo0PE;
+# channels UCeANiSRDAxfXybHkgQ0iY4w and UCBhd8WiPmssoGcoYVSGcXJQ).
+ROCHESTER_BD = replace(
+    ROCHESTER, name="rochester-bd",
+    panels=(("top", ROCHESTER.panels[1][1]), ("bottom", ROCHESTER.panels[0][1])),
+    end_cameras={"top": ("left", ROCHESTER.end_cameras["bottom"][1]),
+                 "bottom": ("right", ROCHESTER.end_cameras["top"][1])},
+    # Sheet A's rectangle: these sheets' board cameras are not measured yet.
+    board=None)
+
+CLUBS = {c.name: c for c in (GRANITE, CINCINNATI, SWIFT_CURRENT, ARDSLEY, MARTENSVILLE, DALLAS,
+                             ROCHESTER, ROCHESTER_BD)}
 
 
 def for_channel(channel_id) -> Club:

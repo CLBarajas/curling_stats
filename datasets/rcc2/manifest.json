@@ -1,0 +1,2375 @@
+{
+ "what": "rcc2: Rochester's end cameras (Go_JOSxJPsQ)",
+ "scope": "rcc2:train",
+ "views": {
+  "left": {
+   "rect": [
+    6,
+    6,
+    950,
+    838
+   ],
+   "tee_row": 390.59,
+   "hog_row": 805.55,
+   "d_m": 16.0167,
+   "end_camera": true,
+   "centre_col": 438.65,
+   "lat_px_per_m_at_tee": 175.026,
+   "centre_line": [
+    432.4,
+    0.016008
+   ]
+  },
+  "right": {
+   "rect": [
+    964,
+    6,
+    950,
+    838
+   ],
+   "tee_row": 386.07,
+   "hog_row": 802.55,
+   "d_m": 15.5305,
+   "end_camera": true,
+   "centre_col": 492.61,
+   "lat_px_per_m_at_tee": 169.943,
+   "centre_line": [
+    498.891,
+    -0.016271
+   ]
+  }
+ },
+ "images": "each end camera of Go_JOSxJPsQ.mp4, 80 rows above the tee to the bottom of the view, true colours",
+ "prelabel": {
+  "weights": "cin3a.pt",
+  "conf": 0.25,
+  "imgsz": 800,
+  "on": "a blue-to-yellow copy of the same crop",
+  "classes": {
+   "0": "red_stone",
+   "1": "yellow_stone (Rochester: blue)"
+  }
+ },
+ "selection": {
+  "shares_per_camera": {
+   "play": 20,
+   "arriving": 15,
+   "throwing": 15
+  },
+  "sure_conf": 0.5,
+  "doubt_conf": 0.1,
+  "mined_every_s": 2.0,
+  "mined_conf": 0.05,
+  "timeline": "out/rcc-1104-rcc1a/timeline.json"
+ },
+ "by_kind": {
+  "throwing-right": 15,
+  "arriving-left": 15,
+  "play-left": 20,
+  "arriving-right": 15,
+  "throwing-left": 15,
+  "play-right": 20
+ },
+ "frames": [
+  {
+   "kind": "throwing",
+   "view": "right",
+   "score": 0,
+   "t": 340.674,
+   "frame": 10210,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_000340_67",
+   "prelabels": 0,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "left",
+   "score": 0,
+   "t": 478.978,
+   "frame": 14355,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_000478_98",
+   "prelabels": 2,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "left",
+   "t": 516.516,
+   "score": 5,
+   "frame": 15480,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_000516_52",
+   "prelabels": 4,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "left",
+   "score": 0,
+   "t": 636.069,
+   "frame": 19063,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_000636_07",
+   "prelabels": 2,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "right",
+   "score": 0,
+   "t": 640.573,
+   "frame": 19198,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_000640_57",
+   "prelabels": 1,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "left",
+   "t": 798.798,
+   "score": 9,
+   "frame": 23940,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_000798_80",
+   "prelabels": 6,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "left",
+   "score": 0,
+   "t": 823.089,
+   "frame": 24668,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_000823_09",
+   "prelabels": 5,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "right",
+   "score": 0,
+   "t": 827.593,
+   "frame": 24803,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_000827_59",
+   "prelabels": 1,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "right",
+   "score": 0,
+   "t": 912.779,
+   "frame": 27356,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_000912_78",
+   "prelabels": 0,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "left",
+   "t": 978.978,
+   "score": 13,
+   "frame": 29340,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_000978_98",
+   "prelabels": 5,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "left",
+   "score": 0,
+   "t": 1020.486,
+   "frame": 30584,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_001020_49",
+   "prelabels": 8,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "right",
+   "score": 0,
+   "t": 1090.79,
+   "frame": 32691,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_001090_79",
+   "prelabels": 0,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "left",
+   "t": 1125.124,
+   "score": 17,
+   "frame": 33720,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_001125_12",
+   "prelabels": 8,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "left",
+   "score": 0,
+   "t": 1175.875,
+   "frame": 35241,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_001175_87",
+   "prelabels": 8,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "right",
+   "score": 0,
+   "t": 1252.985,
+   "frame": 37552,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_001252_99",
+   "prelabels": 0,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "left",
+   "score": 0,
+   "t": 1253.986,
+   "frame": 37582,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_001253_99",
+   "prelabels": 0,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "right",
+   "t": 1315.314,
+   "score": 4,
+   "frame": 39420,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_001315_31",
+   "prelabels": 3,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "right",
+   "score": 0,
+   "t": 1445.477,
+   "frame": 43321,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_001445_48",
+   "prelabels": 4,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "right",
+   "t": 1455.454,
+   "score": 9,
+   "frame": 43620,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_001455_45",
+   "prelabels": 6,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "right",
+   "score": 0,
+   "t": 1596.295,
+   "frame": 47841,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_001596_29",
+   "prelabels": 4,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "left",
+   "score": 0,
+   "t": 1597.296,
+   "frame": 47871,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_001597_30",
+   "prelabels": 0,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "right",
+   "score": 0,
+   "t": 1704.102,
+   "frame": 51072,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_001704_10",
+   "prelabels": 5,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "left",
+   "score": 0,
+   "t": 1705.103,
+   "frame": 51102,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_001705_10",
+   "prelabels": 0,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "right",
+   "t": 1753.752,
+   "score": 9,
+   "frame": 52560,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_001753_75",
+   "prelabels": 5,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "right",
+   "t": 1757.756,
+   "score": 9,
+   "frame": 52680,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_001757_76",
+   "prelabels": 6,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "right",
+   "t": 1973.972,
+   "score": 14,
+   "frame": 59160,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_001973_97",
+   "prelabels": 5,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "left",
+   "score": 0,
+   "t": 2071.303,
+   "frame": 62077,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_002071_30",
+   "prelabels": 0,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "right",
+   "t": 2144.142,
+   "score": 17,
+   "frame": 64260,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_002144_14",
+   "prelabels": 8,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "right",
+   "score": 0,
+   "t": 2198.129,
+   "frame": 65878,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_002198_13",
+   "prelabels": 2,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "left",
+   "t": 2318.316,
+   "score": 6,
+   "frame": 69480,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_002318_32",
+   "prelabels": 4,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "left",
+   "t": 2490.488,
+   "score": 9,
+   "frame": 74640,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_002490_49",
+   "prelabels": 1,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "left",
+   "score": 0,
+   "t": 2551.616,
+   "frame": 76472,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_002551_62",
+   "prelabels": 3,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "right",
+   "score": 0,
+   "t": 2552.617,
+   "frame": 76502,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_002552_62",
+   "prelabels": 0,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "left",
+   "t": 2610.608,
+   "score": 12,
+   "frame": 78240,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_002610_61",
+   "prelabels": 4,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "right",
+   "score": 0,
+   "t": 2646.21,
+   "frame": 79307,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_002646_21",
+   "prelabels": 0,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "left",
+   "score": 0,
+   "t": 2671.502,
+   "frame": 80065,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_002671_50",
+   "prelabels": 4,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "left",
+   "score": 0,
+   "t": 2941.105,
+   "frame": 88145,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_002941_10",
+   "prelabels": 5,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "right",
+   "score": 0,
+   "t": 2942.106,
+   "frame": 88175,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_002942_11",
+   "prelabels": 0,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "left",
+   "t": 2980.978,
+   "score": 12,
+   "frame": 89340,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_002980_98",
+   "prelabels": 8,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "left",
+   "t": 3123.12,
+   "score": 14,
+   "frame": 93600,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_003123_12",
+   "prelabels": 7,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "right",
+   "score": 0,
+   "t": 3192.222,
+   "frame": 95671,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_003192_22",
+   "prelabels": 0,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "left",
+   "t": 3223.22,
+   "score": 9,
+   "frame": 96600,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_003223_22",
+   "prelabels": 5,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "right",
+   "score": 0,
+   "t": 3344.641,
+   "frame": 100239,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_003344_64",
+   "prelabels": 2,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "right",
+   "t": 3365.362,
+   "score": 6,
+   "frame": 100860,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_003365_36",
+   "prelabels": 3,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "left",
+   "score": 0,
+   "t": 3391.355,
+   "frame": 101639,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_003391_35",
+   "prelabels": 0,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "right",
+   "score": 0,
+   "t": 3458.522,
+   "frame": 103652,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_003458_52",
+   "prelabels": 3,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "right",
+   "t": 3553.55,
+   "score": 10,
+   "frame": 106500,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_003553_55",
+   "prelabels": 5,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "right",
+   "t": 3599.596,
+   "score": 10,
+   "frame": 107880,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_003599_60",
+   "prelabels": 8,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "left",
+   "score": 0,
+   "t": 3643.54,
+   "frame": 109197,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_003643_54",
+   "prelabels": 1,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "left",
+   "score": 0,
+   "t": 3856.252,
+   "frame": 115572,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_003856_25",
+   "prelabels": 1,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "right",
+   "score": 0,
+   "t": 3868.932,
+   "frame": 115952,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_003868_93",
+   "prelabels": 4,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "right",
+   "score": 0,
+   "t": 3941.738,
+   "frame": 118134,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_003941_74",
+   "prelabels": 4,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "right",
+   "t": 3957.954,
+   "score": 11,
+   "frame": 118620,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_003957_95",
+   "prelabels": 6,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "left",
+   "score": 0,
+   "t": 4018.948,
+   "frame": 120448,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_004018_95",
+   "prelabels": 1,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "right",
+   "t": 4102.098,
+   "score": 9,
+   "frame": 122940,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_004102_10",
+   "prelabels": 4,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "left",
+   "score": 0,
+   "t": 4323.653,
+   "frame": 129580,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_004323_65",
+   "prelabels": 3,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "left",
+   "t": 4402.398,
+   "score": 10,
+   "frame": 131940,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_004402_40",
+   "prelabels": 6,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "left",
+   "score": 0,
+   "t": 4426.656,
+   "frame": 132667,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_004426_66",
+   "prelabels": 4,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "right",
+   "score": 0,
+   "t": 4427.657,
+   "frame": 132697,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_004427_66",
+   "prelabels": 0,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "left",
+   "score": 0,
+   "t": 4662.558,
+   "frame": 139737,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_004662_56",
+   "prelabels": 5,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "left",
+   "t": 4706.702,
+   "score": 18,
+   "frame": 141060,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_004706_70",
+   "prelabels": 8,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "right",
+   "score": 0,
+   "t": 4782.745,
+   "frame": 143339,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_004782_74",
+   "prelabels": 0,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "left",
+   "score": 0,
+   "t": 4804.133,
+   "frame": 143980,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_004804_13",
+   "prelabels": 4,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "left",
+   "t": 4898.894,
+   "score": 18,
+   "frame": 146820,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_004898_89",
+   "prelabels": 10,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "right",
+   "score": 0,
+   "t": 4966.462,
+   "frame": 148845,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_004966_46",
+   "prelabels": 0,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "left",
+   "t": 4978.974,
+   "score": 16,
+   "frame": 149220,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_004978_97",
+   "prelabels": 13,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "left",
+   "score": 0,
+   "t": 5073.335,
+   "frame": 152048,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_005073_33",
+   "prelabels": 12,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "right",
+   "t": 5207.202,
+   "score": 6,
+   "frame": 156060,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_005207_20",
+   "prelabels": 4,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "right",
+   "score": 0,
+   "t": 5247.342,
+   "frame": 157263,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_005247_34",
+   "prelabels": 2,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "right",
+   "t": 5347.342,
+   "score": 9,
+   "frame": 160260,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_005347_34",
+   "prelabels": 5,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "left",
+   "score": 0,
+   "t": 5470.565,
+   "frame": 163953,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_005470_57",
+   "prelabels": 0,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "right",
+   "score": 0,
+   "t": 5486.348,
+   "frame": 164426,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_005486_35",
+   "prelabels": 5,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "left",
+   "score": 0,
+   "t": 5641.436,
+   "frame": 169074,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_005641_44",
+   "prelabels": 1,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "right",
+   "t": 5643.638,
+   "score": 11,
+   "frame": 169140,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_005643_64",
+   "prelabels": 5,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "right",
+   "score": 0,
+   "t": 5678.139,
+   "frame": 170174,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_005678_14",
+   "prelabels": 5,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "left",
+   "score": 0,
+   "t": 5752.413,
+   "frame": 172400,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_005752_41",
+   "prelabels": 1,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "right",
+   "t": 5825.82,
+   "score": 13,
+   "frame": 174600,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_005825_82",
+   "prelabels": 7,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "right",
+   "score": 0,
+   "t": 5845.64,
+   "frame": 175194,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_005845_64",
+   "prelabels": 5,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "right",
+   "t": 5959.954,
+   "score": 13,
+   "frame": 178620,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_005959_95",
+   "prelabels": 6,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "left",
+   "score": 0,
+   "t": 6018.846,
+   "frame": 180385,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_006018_85",
+   "prelabels": 0,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "right",
+   "t": 6048.042,
+   "score": 17,
+   "frame": 181260,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_006048_04",
+   "prelabels": 9,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "left",
+   "t": 6306.3,
+   "score": 9,
+   "frame": 189000,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_006306_30",
+   "prelabels": 3,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "left",
+   "score": 0,
+   "t": 6459.653,
+   "frame": 193596,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_006459_65",
+   "prelabels": 3,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "left",
+   "t": 6552.546,
+   "score": 13,
+   "frame": 196380,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_006552_55",
+   "prelabels": 9,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "left",
+   "t": 6666.66,
+   "score": 18,
+   "frame": 199800,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_006666_66",
+   "prelabels": 12,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "right",
+   "score": 0,
+   "t": 6716.577,
+   "frame": 201296,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_006716_58",
+   "prelabels": 0,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "left",
+   "t": 6990.984,
+   "score": 21,
+   "frame": 209520,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_006990_98",
+   "prelabels": 17,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "left",
+   "score": 0,
+   "t": 7032.959,
+   "frame": 210778,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_007032_96",
+   "prelabels": 11,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "left",
+   "t": 7237.23,
+   "score": 23,
+   "frame": 216900,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_007237_23",
+   "prelabels": 16,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "right",
+   "score": 0,
+   "t": 7260.353,
+   "frame": 217593,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_007260_35",
+   "prelabels": 0,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "left",
+   "t": 7293.286,
+   "score": 19,
+   "frame": 218580,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_007293_29",
+   "prelabels": 14,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "right",
+   "score": 0,
+   "t": 7335.595,
+   "frame": 219848,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_007335_59",
+   "prelabels": 0,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "left",
+   "score": 0,
+   "t": 7340.099,
+   "frame": 219983,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_007340_10",
+   "prelabels": 2,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "left",
+   "score": 0,
+   "t": 7443.336,
+   "frame": 223077,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_007443_34",
+   "prelabels": 2,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "right",
+   "score": 0,
+   "t": 7463.589,
+   "frame": 223684,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_007463_59",
+   "prelabels": 1,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "right",
+   "t": 7471.464,
+   "score": 8,
+   "frame": 223920,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_007471_46",
+   "prelabels": 3,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "right",
+   "t": 7599.592,
+   "score": 12,
+   "frame": 227760,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_007599_59",
+   "prelabels": 6,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "play",
+   "view": "right",
+   "t": 7791.784,
+   "score": 10,
+   "frame": 233520,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_007791_78",
+   "prelabels": 4,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "arriving",
+   "view": "right",
+   "score": 0,
+   "t": 7814.273,
+   "frame": 234194,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_r_007814_27",
+   "prelabels": 3,
+   "crop_top": 306,
+   "width": 950,
+   "height": 532,
+   "add_box": [
+    [
+     0.04643,
+     0.0608
+    ],
+    [
+     0.0945,
+     0.12374
+    ]
+   ]
+  },
+  {
+   "kind": "throwing",
+   "view": "left",
+   "score": 0,
+   "t": 7818.778,
+   "frame": 234329,
+   "video": "Go_JOSxJPsQ",
+   "stem": "Go_JOSxJPsQ_l_007818_78",
+   "prelabels": 1,
+   "crop_top": 310,
+   "width": 950,
+   "height": 528,
+   "add_box": [
+    [
+     0.04813,
+     0.0635
+    ],
+    [
+     0.09494,
+     0.12527
+    ]
+   ]
+  }
+ ]
+}

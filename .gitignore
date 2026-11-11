@@ -98,6 +98,10 @@ weights/*.pt
 !weights/dfw1b.pt
 !weights/dfw2c.pt
 !weights/bdfw1.pt
+# Rochester's overhead model: overhead-3 tuned on rcc1 (red and blue stones).
+!weights/rcc1b.pt
+# Rochester's end-camera model: cin3a tuned on rcc2.
+!weights/rcc2b.pt
 
 # Harvested board frames for the card-digit training set. What training
 # consumes is the ~24x22 px card window, and those are committed in
