@@ -121,6 +121,34 @@ as `analyze` and `farfollow` use. I looked at every crop: 40 overhead and 40 end
   reach a timeline depends on how the side detections are placed on the sheet, which I did not check.
 - The racks of spare stones beside sheet D's right camera are not boxed.
 
+## Full runs (Chris's GPU, 2026-11-11)
+
+`curling-score analyze --club rochester-d|rochester-b --device mps` from this branch, compared with sheet A's
+`out/rcc-1104-gpu`. Neither run had the release model: it looks for CUDA only and ignores `--device mps`, so
+release times come from the fallbacks on all three sheets.
+
+| | A (`rcc-1104-gpu`) | D (`rcc-d-1109`) | B (`rcc-b-1110`) |
+|---|---|---|---|
+| ends, throws | 8, 115 | 7, 112 | 8, 128 |
+| entry into the house | 108 | 105 | 112 |
+| far hog line | 76 | 77 | 91 |
+| splits | 58 | 60 | 73 |
+| release times | 107 | 103 | 107 |
+| target broom | 95 | 91 | **43** |
+| stone count vs board, ends posted | 5 of 7 agree | 5 of 6 agree (end 6: 4 against 3) | 6 of 7 agree (end 5: 0 against 2) |
+
+- **D** is as good as A. The game stopped after 7 ends (last throw 7333 s of 7858).
+- **B, end 5**: the board's red 2 is right (two reds in the house at 4094 s, no blue). The run read the house at
+  4108 s or later, after the clear had started, and counted nothing. A timing question for end assembly.
+- **B, hammer in end 5**: the run has red with the hammer (yellow threw first; a blue was first into the house
+  at 3378 s), but the rules say yellow, because red stole end 4. Red did score end 4 by both the board and the
+  stones, and end 4's first stone was red (a guard, on the end camera at 2500 s). So the teams most likely threw
+  end 5 out of order, and the run reports what happened; `hammer_expected` flags it.
+- **B, target broom on 43 throws** against 91-95 on A and D. Not looked into; it belongs to the line and broom
+  work.
+- B's end 1 runs from 27 to 606 s, under ten minutes. The top house has play from 30 s to its clear at 615 s
+  (overhead counts), so it is a real end, not a warm-up.
+
 ## Changes on `rcc-sheets`
 
 - `clubs.py`: `rochester-b`, `rochester-c`, `rochester-d`; `rochester-bd` keeps B and D's common paint and
