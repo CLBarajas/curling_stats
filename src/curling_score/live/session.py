@@ -105,6 +105,10 @@ class Calibration:
             return False
         if not self.side_expected:
             return True
+        # The same cameras first: one may have been left out of either
+        # (`analyze._end_views`, a camera that cannot be fitted).
+        if set(self.sideviews) != set(other.sideviews):
+            return False
         return all(abs(v.tee_row - other.sideviews[n].tee_row) <= SIDE_AGREE_PX
                    and abs(v.hog_row - other.sideviews[n].hog_row) <= SIDE_AGREE_PX
                    for n, v in self.sideviews.items())
@@ -384,7 +388,12 @@ class LiveSession:
             far_hog_from_long=bool(getattr(getattr(self.pipeline, "club", None),
                                            "far_hog_from_long", False)),
             guards_from_long_m=getattr(getattr(self.pipeline, "club", None),
-                                       "guards_from_long_m", None))
+                                       "guards_from_long_m", None),
+            # As `analyze.analyze` gives it: how long after the far hog line a
+            # guard is read is the club's to say (Rochester's 10 s).
+            **({"guards_after_far_s": self.pipeline.club.guards_after_far_s}
+               if getattr(getattr(self.pipeline, "club", None), "guards_after_far_s", None)
+               is not None else {}))
         run_up = self.run_up[key] if again else self.prev_end_s
         # The recorder only notes what the checks reject; the frames are cut
         # later, on the manager's keep thread, never inside an end's build.
@@ -558,7 +567,11 @@ class VideoPipeline:
         return analyze.build_one_end(ctx, game, end, prev_end_s, board_score=None)
 
     def read_board(self, path, game):
-        return analyze.board_for_game(path, game, progress=self.progress)
+        # The club's own board where it has one (Rochester's fixed board
+        # camera, `fixedboard`), as `analyze.analyze` reads a recording's.
+        board = getattr(self.club, "board", None)
+        return analyze.board_for_game(path, game, progress=self.progress,
+                                      **({"board": board} if board is not None else {}))
 
     def board_states(self, path, t0, t1):
         return boardsplit.board_states(path, t0, t1)

@@ -558,24 +558,127 @@ def _add_harvest(sub):
     p.set_defaults(func=_harvest)
 
 
+def _live_club(name, channel_id=None):
+    """The club profile a live run reads by: ``name`` (``--club``), narrowed to
+    a sheet's own profile by the stream's channel where the club has one a
+    sheet (`clubs.for_sheet`); None for no ``--club``, which keeps Granite's
+    behaviour, as before ``--club`` existed."""
+    if name is None:
+        return None
+    club = clubs.CLUBS[name]
+    if club.sheet_channels and channel_id:
+        sheet_club = clubs.for_sheet(club, channel_id)
+        if sheet_club is not club:
+            print(f"sheet {sheet_club.sheet}, by its channel: read as {sheet_club.name}")
+        club = sheet_club
+    return club
+
+
 def _live_replay(args) -> int:
     """A cached video played back as a live stream, through the live session:
     each settled end is built and published as it would be on a league night.
     Every published document is kept, numbered, beside the latest one."""
-    import time
+    from curling_score.detect import device as device_mod
+    from curling_score.live import replay
 
-    from curling_score.live import replay, runner, session as live
-
+    device_mod.use(args.device)
     out = Path(args.out)
     (out / "publishes").mkdir(parents=True, exist_ok=True)
-    weights = None if (args.weights or "").lower() in ("", "none", "classical") \
-        else args.weights
+    club = _live_club(args.club)
+    vid = Path(args.video).stem
+    try:
+        url = source.canonical_url(vid)
+    except ValueError:
+        url = str(args.video)
+    with weights_mod.use_club(club) if club is not None else _nothing():
+        models = _live_models(args, club)
+        rec = replay.ReplayRecording(args.video, out / "recording.ts",
+                                     speed=args.speed).start()
+        return _live_run(args, rec, vid, url, club, models, out)
+
+
+def _live(args) -> int:
+    """A YouTube live stream, recorded from its first segment and turned into
+    a timeline one settled end at a time: the hosted worker's live lane, for
+    one stream on this machine. Waits for a scheduled stream to go live.
+    ``curling-score serve --out`` on the same folder shows it as it grows."""
+    import threading
+    import time
+
+    from curling_score.detect import device as device_mod
+    from curling_score.live import recorder as recorder_mod
+
+    device_mod.use(args.device)
+    vid = source.video_id(args.url)
+    url = source.canonical_url(vid)
+    out = Path(args.out)
+    (out / "publishes").mkdir(parents=True, exist_ok=True)
+    info = None
+    while True:
+        try:
+            info = source.fetch_info(url)
+            if info.is_live or info.was_live:
+                break
+            print(f"{time.strftime('%H:%M:%S')} the stream is not live yet; "
+                  f"asking again in {args.wait_s:.0f} s")
+        except Exception as exc:  # noqa: BLE001 -- YouTube says "begins in N hours" by raising
+            print(f"{time.strftime('%H:%M:%S')} not live yet ({str(exc).strip()[:120]}); "
+                  f"asking again in {args.wait_s:.0f} s")
+        time.sleep(args.wait_s)
+    club = _live_club(args.club, getattr(info, "channel_id", None))
+    print(f"{getattr(info, 'title', vid)}: recording into {out / 'recording'}")
+    with weights_mod.use_club(club) if club is not None else _nothing():
+        models = _live_models(args, club)
+        rec = recorder_mod.YtDlpRecorder(vid, out / "recording").start()
+        stop = threading.Event()
+
+        def keep_recording():
+            # The recorder's own checks are HTTP and subprocesses only, never
+            # decoding, so they may run beside the session's thread
+            # (`live/manager.py` does the same for the hosted worker).
+            while not stop.wait(20.0):
+                try:
+                    rec.check()
+                except Exception:  # noqa: BLE001
+                    logging.getLogger(__name__).exception("recorder check failed")
+
+        keeper = threading.Thread(target=keep_recording, daemon=True)
+        keeper.start()
+        try:
+            return _live_run(args, rec, vid, url, club, models, out)
+        finally:
+            stop.set()
+
+
+class _nothing:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def _live_models(args, club):
+    """The four models a live session shares, loaded before anything is read:
+    the club's own overhead model unless ``--weights`` says otherwise."""
+    from curling_score.live import session as live
+
+    w = args.weights if args.weights is not None else _default_weights(club)
+    weights = None if (w or "").lower() in ("", "none", "classical") else w
     detector, broom_model, line_model = analyze_mod.load_models(
         weights, args.imgsz, args.device, skip_longview=args.no_longview,
         skip_line=args.no_line, progress=print)
     release_model = analyze_mod.load_release_model(line_model, print)
-    rec = replay.ReplayRecording(args.video, out / "recording.ts",
-                                 speed=args.speed).start()
+    return weights, live.Models(detector=detector, broom_model=broom_model,
+                                line_model=line_model, release_model=release_model)
+
+
+def _live_run(args, rec, vid, url, club, models, out) -> int:
+    import time
+
+    from curling_score.live import runner, session as live
+
+    weights, models = models
     t0, count = time.monotonic(), [0]
 
     def publish(doc):
@@ -588,19 +691,13 @@ def _live_replay(args) -> int:
               f"recorded to {doc['live']['recorded_s']} s"
               + ("" if doc["live"]["in_progress"] else " -- final"))
 
-    vid = Path(args.video).stem
-    try:
-        url = source.canonical_url(vid)
-    except ValueError:
-        url = str(args.video)
     session = live.LiveSession(
         video_id=vid, url=url, recording=rec, fmt=format_mod.by_name(args.format),
         pipeline=live.VideoPipeline(weights=weights, skip_longview=args.no_longview,
-                                    line=line_model is not None, progress=print),
-        sheet=args.sheet,
-        models=live.Models(detector=detector, broom_model=broom_model,
-                           line_model=line_model, release_model=release_model),
-        publish=publish, progress=print)
+                                    line=models.line_model is not None, progress=print,
+                                    club=club),
+        sheet=args.sheet if args.sheet is not None else getattr(club, "sheet", None),
+        models=models, publish=publish, progress=print)
     try:
         runner.run_session(session)
     finally:
@@ -801,7 +898,31 @@ def main(argv=None) -> int:
                    help="skip the side views (hog times, brooms, lines)")
     p.add_argument("--no-line", action="store_true",
                    help="skip measuring where each rock's line passed the broom")
-    p.set_defaults(func=_live_replay)
+    p.add_argument("--club", choices=sorted(clubs.CLUBS), default=None,
+                   help="whose stream this is (default: Granite's profile); "
+                        "a club with a channel a sheet needs the sheet's own, e.g. rochester-c")
+    p.set_defaults(func=_live_replay, weights=None)
+
+    p = sub.add_parser("live",
+                       help="follow a YouTube live stream, one end at a time")
+    p.add_argument("url", help="the stream's YouTube URL or id; a scheduled one is waited for")
+    p.add_argument("--out", default="out-live", help="output directory (default: out-live)")
+    p.add_argument("--club", choices=sorted(clubs.CLUBS), default=None,
+                   help="whose stream this is; rochester picks the sheet by the stream's channel")
+    p.add_argument("--weights", default=None,
+                   help="a trained YOLO model to detect with (default: the club's own)")
+    p.add_argument("--imgsz", type=int, default=448)
+    p.add_argument("--device", default=None,
+                   help="where the detectors run, e.g. mps (default: $CURLING_SCORE_DEVICE)")
+    p.add_argument("--sheet", default=None, help="the sheet, when neither title nor club says")
+    p.add_argument("--format", choices=sorted(format_mod.FORMATS), default="fours")
+    p.add_argument("--wait-s", type=float, default=60.0,
+                   help="how often to ask whether a scheduled stream is live (default: 60)")
+    p.add_argument("--no-longview", action="store_true",
+                   help="skip the side views (hog times, brooms, lines)")
+    p.add_argument("--no-line", action="store_true",
+                   help="skip measuring where each rock's line passed the broom")
+    p.set_defaults(func=_live)
 
     p = sub.add_parser("practice-replay",
                        help="replay a cached video as a practice session, one throw at a time")
