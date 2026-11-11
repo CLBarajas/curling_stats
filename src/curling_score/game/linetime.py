@@ -245,10 +245,30 @@ def to_destination(view, cx: float, edge_row: float):
     return -x_view, TEE_Y - yp, yp
 
 
-def relink(samples, key, t_seed, fps: float = 30.0, max_gap: int = 6):
+# A rock's own step along the sheet, frame to frame, when ``relink`` is given
+# the view: the pixel bound below is a fixed 8 px a frame, but an end camera
+# sees the hog line from ~10 m, where it is 107 px/m (Rochester, Go_JOSxJPsQ),
+# and a hit at 2.3 m/s moves 8-11 px a frame there, 13-14 at the crossing's own
+# sample. Five such hits (sheet A, 2026-11-11) kept only the 2-4 samples after
+# their crossing, so no line. A step is also accepted if it is no faster than
+# this along, in metres, plus the box foot's jitter.
+RELINK_MAX_M_S = 4.5
+RELINK_TOL_M = 0.06
+
+
+def relink(samples, key, t_seed, fps: float = 30.0, max_gap: int = 6, view=None):
     """The stone's samples frame to frame by continuity, both ways from the
     one nearest ``t_seed`` in column key ``key`` -- not by key, which a stone
-    drifting across the sheet leaves."""
+    drifting across the sheet leaves. With ``view``, a step along the sheet
+    may also be judged in metres (RELINK_MAX_M_S): only ever more permissive
+    than the pixel bound."""
+    def along_ok(s, cur, steps, direction):
+        if -3 * steps <= (s[2] - cur[2]) * direction <= 8 * steps + 4:
+            return True
+        if view is None:
+            return False
+        d = (view.metres_at(s[2]) - view.metres_at(cur[2])) * direction
+        return 0 <= d <= RELINK_MAX_M_S * steps / fps + RELINK_TOL_M
     by_t: dict = {}
     for s in samples:
         by_t.setdefault(round(s[0], 4), []).append(s)
@@ -265,7 +285,7 @@ def relink(samples, key, t_seed, fps: float = 30.0, max_gap: int = 6):
             steps = abs(ts[i] - cur[0]) * fps
             ok = [s for s in by_t[ts[i]]
                   if abs(s[1] - cur[1]) <= 8 + 3 * steps
-                  and -3 * steps <= (s[2] - cur[2]) * direction <= 8 * steps + 4]
+                  and along_ok(s, cur, steps, direction)]
             if not ok:
                 gap += 1
                 if gap > max_gap:
@@ -289,7 +309,7 @@ def hog_track(crossing, view, extra=()):
         return []
     t_seed = crossing.t if crossing.t is not None else samples[len(samples) // 2][0]
     return [(t, *to_destination(view, cx, row)) for t, cx, row, _w in
-            relink(samples, crossing.track_key, t_seed)]
+            relink(samples, crossing.track_key, t_seed, view=view)]
 
 
 def band_edge(view) -> int:

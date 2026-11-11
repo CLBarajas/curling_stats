@@ -59,7 +59,7 @@ def track_of(crossing, view):
     if not samples:
         return []
     t_seed = crossing.t if crossing.t is not None else samples[len(samples) // 2][0]
-    return linetime.relink(samples, crossing.track_key, t_seed)
+    return linetime.relink(samples, crossing.track_key, t_seed, view=view)
 
 
 def seed_of(crossing, view, t_start):

@@ -1010,3 +1010,47 @@ class TestTimeLinesOnEndCameras:
         s = self.shot(crossing_for(slide(END_HOG_VIEW), key=4))
         planned = L.planned_windows([s], END_HOG_VIEW, END_DEST_VIEW, False)
         assert [(r, round(t0 - 100.0, 2), round(t1 - 100.0, 2), f) for r, t0, t1, f in planned] == self.run([s])
+
+
+class TestRelinkOnAnEndCamera:
+    """A fast hit near an end camera's hog line steps 11-14 px a frame (its
+    box's foot reads an apparent 3.4-3.9 m/s there), past relink's fixed
+    8 px a frame plus 4 (Rochester sheet A, five hits, 2026-11-11)."""
+
+    @staticmethod
+    def a_fast_hit(view, v_m_s=3.6, fps=30.0):
+        """A rock running from 3.0 m to the view's edge at ``v_m_s``, as
+        hogtime's samples: (t, cx, row, w), one a frame."""
+        rows = range(int(view.row_for(3.0)), int(view.row_for(6.6)))
+        out, t, y = [], 100.0, 3.0
+        while y < 6.6:
+            row = min(rows, key=lambda r: abs(view.metres_at(r) - y))
+            out.append((round(t, 4), 400.0, float(row), 60.0))
+            t += 1 / fps
+            y += v_m_s / fps
+        return out
+
+    def test_the_pixel_bound_alone_breaks_the_chain(self):
+        samples = self.a_fast_hit(END_HOG_VIEW)
+        t_seed = samples[-3][0]
+        assert len(L.relink(samples, 3, t_seed)) < 6
+
+    def test_given_the_view_the_rock_is_followed_back_in_metres(self):
+        samples = self.a_fast_hit(END_HOG_VIEW)
+        t_seed = samples[-3][0]
+        assert len(L.relink(samples, 3, t_seed, view=END_HOG_VIEW)) == len(samples)
+
+    def test_a_jump_no_rock_could_make_is_still_refused(self):
+        samples = self.a_fast_hit(END_HOG_VIEW, v_m_s=2.0)
+        # A stone of the same colour a metre further on, in the next frame.
+        t_last = samples[-1][0]
+        far = (round(t_last + 1 / 30, 4), 400.0, float(END_HOG_VIEW.row_for(
+            END_HOG_VIEW.metres_at(samples[-1][2]) + 1.0)), 60.0)
+        chain = L.relink(samples + [far], 3, samples[0][0], view=END_HOG_VIEW)
+        assert far not in chain
+
+    def test_a_slow_rock_is_linked_as_before(self):
+        samples = self.a_fast_hit(END_HOG_VIEW, v_m_s=1.2)
+        t_seed = samples[len(samples) // 2][0]
+        assert L.relink(samples, 3, t_seed) == \
+            L.relink(samples, 3, t_seed, view=END_HOG_VIEW)
