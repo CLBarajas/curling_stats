@@ -471,7 +471,7 @@ def _labels(args) -> int:
 def _serve(args) -> int:
     from curling_score.viewer import serve
 
-    serve(Path(args.out), port=args.port)
+    serve(Path(args.out), port=args.port, open_browser=not args.no_open)
     return 0
 
 
@@ -917,6 +917,8 @@ def main(argv=None) -> int:
     p = sub.add_parser("serve", help="open the timeline viewer")
     p.add_argument("--out", default="out")
     p.add_argument("--port", type=int, default=8000)
+    p.add_argument("--no-open", action="store_true",
+                   help="serve without opening the default browser at the page")
     p.set_defaults(func=_serve)
 
     p = sub.add_parser("info", help="print video metadata")

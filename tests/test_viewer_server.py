@@ -262,3 +262,23 @@ class TestFeedsBackIntoTheTimeline:
         once = timeline.apply_overrides(_document(), served.saved())
         twice = timeline.apply_overrides(once, served.saved())
         assert once == twice
+
+
+class TestServeFromTheCommandLine:
+    """``curling-score serve --no-open``: for a page somebody will open
+    somewhere other than the default browser."""
+
+    def run(self, monkeypatch, argv):
+        from curling_score import cli, viewer
+
+        seen = {}
+        monkeypatch.setattr(viewer, "serve", lambda out, **kw: seen.update(out=out, **kw))
+        assert cli.main(argv) == 0
+        return seen
+
+    def test_it_opens_the_browser_unless_told_not_to(self, monkeypatch):
+        assert self.run(monkeypatch, ["serve", "--out", "x"])["open_browser"] is True
+
+    def test_no_open_serves_without_it(self, monkeypatch):
+        got = self.run(monkeypatch, ["serve", "--out", "x", "--port", "8792", "--no-open"])
+        assert got["open_browser"] is False and got["port"] == 8792
