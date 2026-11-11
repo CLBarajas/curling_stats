@@ -915,6 +915,12 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
                      f"in {time.monotonic() - t_spin:.1f} s")
             stages.mark("spin")
             progress(f"    end {end.number}: side views {ahead.summary()}")
+    elif dest_view is not None:
+        # No throwing camera (one end camera left out, `_end_views`): the
+        # skip's broom needs only the camera facing the house, so it is read
+        # all the same. The lines need both and are not.
+        broomtime.time_target_brooms(shots, path, dest_view, model=ctx.broom_model)
+        stages.mark("brooms")
     # Stage 3, the destination hog line, from that panel's painted line.
     # In this block ``setup`` is the destination panel and ``far`` is
     # the THROWING panel -- far from the house being played to.
