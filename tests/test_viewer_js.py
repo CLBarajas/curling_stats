@@ -4635,6 +4635,8 @@ class TestTheBigDeliveryAndItsSpeed:
 
 
 NAVY, GOLD_DOT, TEAL = "#2d1e6b", "#a07a00", "#1f7a8c"
+RED_INK, ROCHESTER_BLUE = "#d13438", "#4d8ef0"
+INK = {"red": RED_INK, "yellow": GOLD_DOT}
 
 
 def on_path(t):
@@ -4683,13 +4685,26 @@ class TestTheRelease:
                      "out([dotColor(0.1, r), dotColor(0.2, r), dotColor(0.3, r), dotColor(0.1, null)]);")
         assert got == [NAVY, GOLD_DOT, GOLD_DOT, TEAL]
 
-    def test_a_timeline_without_a_release_draws_every_dot_teal_with_no_marker_or_legend(self):
+    def test_a_timeline_without_a_release_draws_every_dot_the_rock_s_colour_with_no_marker_or_legend(self):
         for box in ("DELIVERYBOX", "BIGDELIVERYBOX"):
             g = self.geom(delivery_shot(), box)
             assert g["release"] is None and g["legend"] == []
-            assert {d["fill"] for d in g["dots"]} == {TEAL}
+            assert {d["fill"] for d in g["dots"]} == {RED_INK}
         sg = self.speed_geom(ROCKS["e2r4"])
-        assert sg["release"] is None and {s["color"] for s in sg["segs"]} == {TEAL}
+        assert sg["release"] is None and {s["color"] for s in sg["segs"]} == {INK[ROCKS["e2r4"]["color"]]}
+
+    def test_a_rock_s_own_colour_is_its_stones_as_the_club_has_them(self):
+        # The stock yellow does not read on the ice: the path's gold. A club's
+        # own colour is drawn as it is (Rochester's "yellow" is blue), and a
+        # rock with no colour to give keeps the teal.
+        dots = ("const fills = c => [...new Set(deliveryGeometry({...s, color: c}, DELIVERYBOX)"
+                ".dots.map(d => d.fill))];")
+        got = run_js(f"const s = {json.dumps(delivery_shot())}; {dots}"
+                     "const stock = [fills('red'), fills('yellow'), fills(undefined)];"
+                     f"applyStones({{yellow: {{name: 'Blue', color: '{ROCHESTER_BLUE}'}}}});"
+                     "out([stock, [fills('red'), fills('yellow')], [stoneInk('red'), stoneInk('yellow')]]);")
+        assert got == [[[RED_INK], [GOLD_DOT], [TEAL]], [[RED_INK], [ROCHESTER_BLUE]],
+                       [RED_INK, ROCHESTER_BLUE]]
 
     def test_the_marker_sits_on_the_path_at_the_release_in_both_orientations(self):
         i = [p[0] for p in delivery_points()].index(0.5)
@@ -4827,7 +4842,7 @@ class TestTheRelease:
                      "out([deliveryRelease(s), g.release, g.legend, [...new Set(g.dots.map(d => d.fill))],"
                      " sg.release, [...new Set(sg.segs.map(q => q.color))],"
                      " aimFrame(s, {schema_version: 8}).release]);")
-        assert got == [None, None, [], [TEAL], None, [TEAL], None]
+        assert got == [None, None, [], [RED_INK], None, [RED_INK], None]
 
     def test_the_release_is_read_in_the_delivery_s_frame(self):
         s = released(0.05)

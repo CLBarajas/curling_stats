@@ -138,12 +138,19 @@ export const OVERLAYBOX = { w: 358, h: 395, from: -4.0, to: 8.05, across: 0.6, m
 export const SCATTERBOX = { w: 358, h: 260, maxFeet: 6, pad: { l: 40, r: 10, t: 22, b: 34 } };
 /* The delivery's dots (and the speed line under the large one): indigo while
  * the hand is on the handle, the strip's own path gold from the release on
- * (line.release), so the change of colour marks it; teal for every dot of a
- * rock whose release was not read, so no chart implies one it does not have.
+ * (line.release), so the change of colour marks it; every dot of a rock whose
+ * release was not read is one colour, its own stones' (`stoneInk`), so no
+ * chart implies a release it does not have -- teal where the rock has no
+ * colour to give.
  * Each reads on the ice (PAINT.ice), and before and after differ in
  * lightness, so the split survives colour blindness. game/clipburn.py burns
  * the same three into clips. */
 export const DELIVERY_COLORS = { before: "#2d1e6b", after: "#a07a00", unknown: "#1f7a8c" };
+/* The colour a rock's own track is drawn in on the ice: its stones', as the
+ * club has them (Rochester's "yellow" is blue). The stock yellow does not
+ * read on the ice, so it is drawn in the path's gold. */
+export const stoneInk = c => (c === "yellow" && PAINT.yellow === STONE_DEFAULT.yellow.color
+  ? DELIVERY_COLORS.after : (c === "red" || c === "yellow") ? PAINT[c] : DELIVERY_COLORS.unknown);
 /* The whole-game clock above Timing's list: short, so the list keeps the room. */
 export const TIMINGBOX = { w: 640, h: 200, padL: 60, padR: 12, padT: 10, padB: 30 };
 

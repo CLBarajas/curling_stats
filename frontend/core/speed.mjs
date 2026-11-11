@@ -13,6 +13,7 @@
  *
  * Pure -- core/** may not touch the DOM. */
 import { SPEEDBOX, SPEED_GRID_M_S } from "./constants.mjs";
+import { stoneInk } from "./constants.mjs";
 import { HACK_PAST, HOG_PAST, deliveryPoints, deliveryRelease, dotColor } from "./delivery.mjs";
 
 export const SPEED_HALF_S = 0.5;
@@ -96,9 +97,9 @@ export function speedGeometry(speed, box = SPEEDBOX, shot = null) {
   const top = Math.max(3, Math.ceil((Math.max(...shown.map(q => q.v)) + 0.25) * 2) / 2);
   const X = yp => r1(pad.l + (yp - from) * plotW / (to - from));
   const Y = v => r1(pad.t + plotH * (1 - Math.max(0, v) / top));
-  const rel = deliveryRelease(shot);
+  const rel = deliveryRelease(shot), own = stoneInk(shot?.color);
   // Each piece in the colour of the dot it starts from.
-  const seg = (a, b) => ({ x1: X(a.yp), y1: Y(a.v), x2: X(b.yp), y2: Y(b.v), color: dotColor(a.t, rel) });
+  const seg = (a, b) => ({ x1: X(a.yp), y1: Y(a.v), x2: X(b.yp), y2: Y(b.v), color: dotColor(a.t, rel, own) });
   const segs = [];
   for (let i = 1; i < shown.length; i++) {
     const a = shown[i - 1], b = shown[i];

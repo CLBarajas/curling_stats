@@ -7,7 +7,7 @@
  * sideways before it lets go.
  *
  * Pure -- core/** may not touch the DOM. */
-import { DELIVERY_COLORS, OVERLAYBOX, R, STRIPE_HALF_M } from "./constants.mjs";
+import { DELIVERY_COLORS, OVERLAYBOX, R, STRIPE_HALF_M, stoneInk } from "./constants.mjs";
 import { HACK_X_M, HACK_Y, TEE_Y, hackAimX, hackOf, lineReason, median, sideNames } from "./line.mjs";
 
 export const DELIVERY_SCHEMA = 8;
@@ -40,7 +40,7 @@ export function deliveryReason(shot, doc) {
 /* Where the hand let go, as {t, yp, x} in deliveryPoints' frame, from
  * `line.release` ([t, y, x] as the delivery's samples). null when the release
  * was not read -- and when its first three entries are not finite numbers,
- * which is read the same way, so a bad record draws teal dots and not a wrong
+ * which is read the same way, so a bad record draws dots of one colour and not a wrong
  * split. Entries past the third are not looked at: the record may grow, and a
  * viewer already deployed must not drop every release when it does. The clips
  * judge a record the same way (`clipburn._release_t`). */
@@ -52,10 +52,11 @@ export function deliveryRelease(shot) {
 }
 
 /* A dot's colour, `t` seconds on the delivery's clock: before the release
- * `rel` (deliveryRelease's), from it on, or unknown without one. The speed
- * line takes its colours from here too, so the two split at one moment. */
-export function dotColor(t, rel) {
-  if (!rel) return DELIVERY_COLORS.unknown;
+ * `rel` (deliveryRelease's), from it on, or without one `own`, the rock's
+ * own colour (`stoneInk`). The speed line takes its colours from here too,
+ * so the two split at one moment. */
+export function dotColor(t, rel, own = DELIVERY_COLORS.unknown) {
+  if (!rel) return own;
   return t < rel.t ? DELIVERY_COLORS.before : DELIVERY_COLORS.after;
 }
 
@@ -221,7 +222,8 @@ export function deliveryGeometry(shot, box) {
   // The path: dots every sample, a faint line through them broken where the
   // camera lost the rock for a while. The dots change colour at the release.
   const rel = deliveryRelease(shot);
-  const dots = pts.map(p => ({ ...pt(p.x, p.yp), fill: dotColor(p.t, rel) }));
+  const own = stoneInk(shot?.color);
+  const dots = pts.map(p => ({ ...pt(p.x, p.yp), fill: dotColor(p.t, rel, own) }));
   const steps = pts.slice(1).map((p, i) => p.t - pts[i].t).sort((a, b) => a - b);
   const stepS = steps.length ? steps[steps.length >> 1] : 0.1;
   // How often the path has a dot: a tenth of a second until pipeline

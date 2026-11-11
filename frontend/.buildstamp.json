@@ -4,8 +4,8 @@
   "flags": "3814b6394471718919220a4072fed98a4853a93360e8ea70a4896d47dc55fa9a",
   "sources": {
     "frontend/core/charts.mjs": "c4bc35fb2c57a5cc83abbca3d1586724cb17f20016e03b11384fbfe5765b6253",
-    "frontend/core/constants.mjs": "2110162326b996368f14efd510c51bdfb9dfdfa8f89897be9ab9a37224fda024",
-    "frontend/core/delivery.mjs": "c7c6e614292f87eb74c802d6722e526ada5f8e38ed9fad96c74a0674695be520",
+    "frontend/core/constants.mjs": "1ea88878d843ca043e69c33ba199e92b9d64db2e2dd0d7b3b54dc19c348a885e",
+    "frontend/core/delivery.mjs": "6cb513200b781548e0bf23447e3eb56e68dfd74c9c95756dd4e4efe19a6867ba",
     "frontend/core/flag.mjs": "4a6844417c60863444f0f270775cd845aa0160a6d13b4ed60d5c06df35120d00",
     "frontend/core/format.mjs": "5b6852a008aa5b3ac6d6b426ccaea7e02b710bfe6e633eb1725c3aef7d6a2076",
     "frontend/core/house.mjs": "94d64eae255dc61ae56b90901710908c5016eee29601b86133d4aeb7717a0631",
@@ -23,7 +23,7 @@
     "frontend/core/shotclip.mjs": "454740ea70f3458e4b77093b9d924c7a769048d589905a6c941bb4e35f894fbf",
     "frontend/core/shots.mjs": "3b08b240faf516c966167333b09ea060f653bcaa7ae688011bb21ab7f4edfdb9",
     "frontend/core/site.mjs": "fc387523033222e618770c85af6d036e48a70dd00b2d42c96761191028771c42",
-    "frontend/core/speed.mjs": "99ef2edf1f96624b44954fca8c3fb688fc3681621b4a6cf0e08e4652c9abecc6",
+    "frontend/core/speed.mjs": "ad564c0562deeff279f31f2ee1a7e9a66f6ec2c7d80de02c501be3a6c636d717",
     "frontend/core/stats.mjs": "e46d873b7c0f52055162813df60f9cfab5a4d526115fbbba60c973dd27325d07",
     "frontend/core/tablet.mjs": "9458c37883d15605f583ad07dc89a9d736935afd903da99cd779afe48f8e594d",
     "frontend/core/timeline.mjs": "5a1e70510a08c8f031d14ecb45686e66e19475b1bae710d71d73d86d9949b205",
@@ -93,7 +93,7 @@
     "frontend/viewer/main.jsx": "af04f91e05fda15d48cdd728938d64b0ce8ceb5a16e6a6d15f1d0f01e8a19cbe"
   },
   "outputs": {
-    "src/curling_score/service/static/site.js": "29187d403d2e86785b5c8d98c0039fddaaedf30585d9b6d1a7b8edcd6402e9e4",
-    "src/curling_score/viewer/app.js": "712ebafb35bc18439c575d64d249a1f60da33d5933b4f9309877bc967562cf44"
+    "src/curling_score/service/static/site.js": "f9cb32891da732e874e5947ea846a5405da569cfdc258aa538c0f4a2f8616e07",
+    "src/curling_score/viewer/app.js": "305ab3f9e72654a5f988ff5ea4362092b560075fca01365b6955c52494eb8c1c"
   }
 }
