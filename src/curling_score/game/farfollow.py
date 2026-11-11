@@ -254,6 +254,13 @@ def _follow_on(samples, t_release, **kw):
     return path
 
 
+def sightings(samples, t_release, *, seed_min_y_m=SEED_MIN_Y_M):
+    """The delivered stone's sightings as `read_outcome` follows them, (t, x,
+    y) from first to last, for a caller that wants its way in and not a verdict
+    on where it ended (`linetime.find_path_end`)."""
+    return _follow_on(samples, t_release, seed_min_y_m=seed_min_y_m, parked=_parked(samples))
+
+
 def _in_time(path, t_release) -> bool:
     """Whether the stone crossed the far hog line soon enough after its release
     to have had the pace to run through the house."""

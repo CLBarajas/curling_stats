@@ -58,6 +58,20 @@ FINAL_MIN_N = 15
 FINAL_MIN_SPAN_M = 2.0
 CURL_MIN_M = 0.05
 THIN_M = 0.5
+# An end camera (`geometry/endcam.py`) sits above the throwing hog line looking
+# back at the thrower, and its view stops a quarter of a metre past that line
+# (Rochester's at 6.7 m from the tee): the free flight both windows above are
+# cut from is under it, out of sight, and no camera has the rock again until
+# the far hog line. What it does see, closer than any long camera, is the
+# slide coming at it. So the pass's own line there is the rock's last 3 m to
+# the hog line -- late slide and, where the hand was off early, free travel --
+# and there is no final line (``final_refused``): the figures against the
+# broom wait on the release read (`aimlines`' slide and release lines), which
+# are cut from the delivery this line anchors. On Go_JOSxJPsQ end 1 the
+# stretch fitted straight to 0.1-0.3 cm on 9 rocks of 10.
+END_FIT_BEFORE_HOG_M = 3.0
+END_FIT_MIN_N = 15
+END_FIT_MIN_SPAN_M = 2.0
 
 
 @dataclass(frozen=True)
@@ -121,6 +135,20 @@ def final_fit(track) -> Fit | None:
     return fit_line(track, FINAL_PAST_TEE_M, FINAL_MIN_N, FINAL_MIN_SPAN_M)
 
 
+def view_edge_m(view) -> float:
+    """How far past its tee ``view`` sees a whole stone's box."""
+    return view.metres_at(view.rect[3] - CROP_EDGE_ROWS)
+
+
+def pass_fit(track, view) -> Fit | None:
+    """The pass's own line from the camera facing the thrower: free flight past
+    the hog line, or an end camera's last metres up to it."""
+    if getattr(view, "end_camera", False):
+        return fit_line(track, (C.TEE_TO_HOGLINE_M - END_FIT_BEFORE_HOG_M, view_edge_m(view)),
+                        END_FIT_MIN_N, END_FIT_MIN_SPAN_M)
+    return fit_line(track)
+
+
 def aim_x(start, broom, y: float) -> float:
     """The start-to-broom line's x at depth ``y``."""
     (sx, sy), (bx, by) = start, broom
@@ -165,7 +193,7 @@ def thin(points, step: float = THIN_M) -> tuple:
 
 
 def measure(fit: Fit, track, start, broom, rest=None, path=(), delivery=(), *,
-            final: Fit | None) -> Line:
+            final: Fit | None, at_hog: Fit | None = None) -> Line:
     """Everything the Detail pane says about one rock, from its pieces.
 
     ``fit`` is the pass's own line; ``final`` the 9 ft one the figures
@@ -173,7 +201,12 @@ def measure(fit: Fit, track, start, broom, rest=None, path=(), delivery=(), *,
     against the broom, but the curl still comes from ``fit``). ``broom`` None
     is a rock nobody held a broom for (doubles): the offset at the hog line,
     the miss and the side are None, and ``at_tee_x`` pins the line in their
-    place."""
+    place.
+
+    ``at_hog`` is an end camera's own line, which runs up to the hog line and
+    across it: with no final line, where the rock crossed is still read off
+    it, and how far that was from the start-to-broom line. Nothing is extended
+    to the broom from it."""
     end = rest if rest is not None else ((path[-1][1], path[-1][0]) if path else None)
     curl = curl_of(final or fit, end)
     at_hog_x = offset = at_broom_x = miss = side = at_tee_x = None
@@ -187,6 +220,10 @@ def measure(fit: Fit, track, start, broom, rest=None, path=(), delivery=(), *,
             at_broom_x = final.x(by)
             miss = at_broom_x - bx
             side = side_of(miss, curl)
+    elif at_hog is not None:
+        at_hog_x = at_hog.x(HOG_Y)
+        if broom is not None and start is not None:
+            offset = at_hog_x - aim_x(start, broom, HOG_Y)
     return Line(start=start, at_hog_x=at_hog_x, at_hog_offset=offset,
                 at_broom_x=at_broom_x, miss=miss, curl=curl, side=side,
                 hog_path=thin([(y, x) for _t, x, y, _yp in track]),
@@ -247,13 +284,21 @@ def hog_track(crossing, view, extra=()):
     if crossing is None or getattr(crossing, "track_key", None) is None \
             or not getattr(crossing, "samples", ()):
         return []
-    edge = band_crop(view)[1] - CROP_EDGE_ROWS
-    samples = [s for s in list(crossing.samples) + list(extra) if s[2] < edge]
+    samples = [s for s in list(crossing.samples) + list(extra) if s[2] < band_edge(view)]
     if not samples:
         return []
     t_seed = crossing.t if crossing.t is not None else samples[len(samples) // 2][0]
     return [(t, *to_destination(view, cx, row)) for t, cx, row, _w in
             relink(samples, crossing.track_key, t_seed)]
+
+
+def band_edge(view) -> int:
+    """The row a band box's foot must be above to be whole: the band's bottom
+    edge, or the view's own where the band runs off it. An end camera's does
+    -- the band reaches 3 m past a hog line its view ends a quarter metre
+    past -- and a stone leaving under it keeps a box pinned to the last row
+    while its column moves on (Go_JOSxJPsQ: 8-11 samples a rock at 6.57 m)."""
+    return min(band_crop(view)[1], int(view.rect[3])) - CROP_EDGE_ROWS
 
 
 START_WINDOW_S = (-3.0, -0.2)       # before the release: the stone at rest in front of the hack
@@ -449,6 +494,50 @@ def find_path(model, video, view, color, t_hog, t_rest, fit, *, decode, detect):
         return chain(times, per, fit, other)
 
 
+# An end camera facing the house has the rock from its own hog line in: read
+# from before the fastest throw can reach it (a takeout runs hog to hog in ~7
+# s; `fartime.END_WINDOW_S` opens at 5), in one band, as `farfollow` reads it
+# and as the club's end-camera model was trained.
+END_PATH_FROM_S = 4.0
+
+
+def end_path_window(t_leave, t_rest):
+    """The end camera's read of the rock arriving: from END_PATH_FROM_S after
+    it left the throwing camera's view to a second past its rest, or 25 s on."""
+    return t_leave + END_PATH_FROM_S, (t_rest if t_rest is not None else t_leave + 24.0) + 1.0
+
+
+def find_path_end(model, video, view, color, t_leave, t_rest, *, decode, detect):
+    """Where the rock went from the far hog line in, seen from the end camera
+    above that line: [(y, x)]. Nothing ties it to the line the thrower's
+    camera fitted -- 22 m of sheet lie between the two views -- so it is the
+    stone `farfollow` would follow: the first to come in at the view's edge
+    where none was parked."""
+    from curling_score.game import farfollow
+
+    if view is None or not view.has_lateral or t_leave is None:
+        return []
+    frames, times = decode(video, view.rect, *end_path_window(t_leave, t_rest), PATH_FPS)
+    if not len(frames):
+        return []
+    lo = int(view.tee_row) - farfollow.ROWS_ABOVE_TEE
+    hi = int(view.rect[3])
+    boxes = detect(model, frames, times, lo, hi, (color,), imgsz=800, conf=PATH_CONF)[0]
+    samples = []
+    for t, per in zip(times, boxes):
+        dets = []
+        for cx, row, w, conf in per:
+            if row >= hi - CROP_EDGE_ROWS:
+                continue
+            if not PATH_WIDTH[0] < w / (0.291 * view.lateral_px_per_m(row)) < PATH_WIDTH[1]:
+                continue
+            y = view.metres_at(row) - C.STONE_RADIUS_M
+            dets.append((view.lateral_x(cx, view.row_for(y)), y, conf))
+        samples.append((t, dets))
+    seed_from = view_edge_m(view) - C.STONE_RADIUS_M - farfollow.END_SEED_BAND_M
+    return [(y, x) for _t, x, y in farfollow.sightings(samples, t_leave, seed_min_y_m=seed_from)]
+
+
 EXTEND_WINDOW_S = (6.5, 9.0)        # after the release, past hogtime's window
 EXTEND_IF_SHORT_OF_M = 10.0         # ...for a track that stops short of here
 EXTEND_FPS = 30.0
@@ -535,13 +624,32 @@ def _rock_windows(shot, hog_view, dest_view):
         return []
     t_release = shot.release.t
     got = []
-    if max(p[3] for p in track) < EXTEND_IF_SHORT_OF_M:
+    if _extends(track, hog_view):
         got.append((hog_view.rect, *extend_window(t_release), EXTEND_FPS))
     got.append((hog_view.rect, *delivery_window(t_release, track[0][0]), DELIVERY_FPS))
     t_hog = getattr(shot, "t_hog_s", None)
-    if dest_view is not None and dest_view.has_lateral and t_hog is not None:
+    if dest_view is None or not dest_view.has_lateral:
+        return got
+    if getattr(dest_view, "end_camera", False):
+        got.append((dest_view.rect, *end_path_window(_left_view(shot, track), path_until(shot)),
+                    PATH_FPS))
+    elif t_hog is not None:
         got.append((dest_view.rect, *path_window(t_hog, path_until(shot)), PATH_FPS))
     return got
+
+
+def _extends(track, hog_view) -> bool:
+    """Whether a track stopping short is read on past hogtime's window. Never
+    on an end camera: its track stops where its view does."""
+    return (not getattr(hog_view, "end_camera", False)
+            and bool(track) and max(p[3] for p in track) < EXTEND_IF_SHORT_OF_M)
+
+
+def _left_view(shot, track):
+    """When the rock left an end camera's view: its hog crossing, or where a
+    crossing refused a time, its track's last sample."""
+    t_hog = getattr(shot, "t_hog_s", None)
+    return t_hog if t_hog is not None else track[-1][0]
 
 
 def time_lines(shots, video, hog_view, dest_view, *, model=None, decode=None, detect=None,
@@ -577,10 +685,10 @@ def time_lines(shots, video, hog_view, dest_view, *, model=None, decode=None, de
         rel, crossing = shot.release, shot.hog_crossing
         try:
             track = hog_track(crossing, hog_view)
-            if track and max(p[3] for p in track) < EXTEND_IF_SHORT_OF_M:
+            if _extends(track, hog_view):
                 extra = _extend_for(shot, hog_view, video, rel.t, model, decode, detect)
                 track = hog_track(crossing, hog_view, extra)
-            fit = fit_line(track)
+            fit = pass_fit(track, hog_view)
             if fit is None:
                 continue
             held = getattr(shot, "held_brooms", ())
@@ -596,12 +704,20 @@ def time_lines(shots, video, hog_view, dest_view, *, model=None, decode=None, de
                 log.exception("delivery failed on shot %s; its line keeps none",
                               getattr(shot, "number", "?"))
                 delivery = ()
-            path = find_path(model, video, dest_view, shot.color, getattr(shot, "t_hog_s", None),
-                             path_until(shot), fit, decode=decode, detect=detect_bands)
+            if getattr(dest_view, "end_camera", False):
+                path = find_path_end(model, video, dest_view, shot.color, _left_view(shot, track),
+                                     path_until(shot), decode=decode, detect=detect_bands)
+            else:
+                path = find_path(model, video, dest_view, shot.color, getattr(shot, "t_hog_s", None),
+                                 path_until(shot), fit, decode=decode, detect=detect_bands)
+            # An end camera has no sight of the 9 ft past its hog line; its
+            # own line is fitted up to that line and says where it was crossed.
+            end_cam = getattr(hog_view, "end_camera", False)
             shot.line = measure(fit, track, frames.start,
                                 None if broom is None else (broom.x_m, broom.y_m),
                                 rest=_rest(shot), path=path, delivery=delivery,
-                                final=final_fit(track))
+                                final=None if end_cam else final_fit(track),
+                                at_hog=fit if end_cam else None)
             n += 1
         except Exception:
             log.exception("line pass failed on shot %s; it keeps no line",

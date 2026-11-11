@@ -26,7 +26,6 @@ from dataclasses import dataclass
 import numpy as np
 
 from curling_score.game import linetime, spinfit
-from curling_score.geometry.sideview import band_crop
 
 log = logging.getLogger(__name__)
 
@@ -56,8 +55,7 @@ def track_of(crossing, view):
     if crossing is None or getattr(crossing, "track_key", None) is None \
             or not getattr(crossing, "samples", ()):
         return []
-    edge = band_crop(view)[1] - linetime.CROP_EDGE_ROWS
-    samples = [s for s in crossing.samples if s[2] < edge]
+    samples = [s for s in crossing.samples if s[2] < linetime.band_edge(view)]
     if not samples:
         return []
     t_seed = crossing.t if crossing.t is not None else samples[len(samples) // 2][0]
@@ -272,6 +270,11 @@ def time_spins(shots, video, hog_view, *, model, pose=None, decode=None, detect=
     rock its spin, not the end its analysis; one loading the model costs the
     end its spins."""
     if model is None or hog_view is None or not hog_view.has_lateral:
+        return 0
+    # An end camera's view stops a quarter of a metre past the hog line: the
+    # read starts half a second past the crossing and counts from FROM_M, 8 m
+    # out, where that camera never has the rock. Nothing to decode for.
+    if getattr(hog_view, "end_camera", False):
         return 0
     if pose is None:
         from curling_score.detect import spinmodel

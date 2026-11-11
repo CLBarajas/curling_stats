@@ -179,6 +179,16 @@ class TestTimeSpins:
         assert run([a, b], Stubs(fail=1)) == 1
         assert not hasattr(a, "spin") and hasattr(b, "spin")
 
+    def test_an_end_camera_is_not_read(self):
+        # Its view ends a quarter of a metre past the hog line; spin counts
+        # from 8 m. Nothing is decoded for it.
+        import dataclasses
+        stubs = Stubs()
+        s = shot()
+        n = ST.time_spins([s], "v.mp4", dataclasses.replace(VIEW, end_camera=True), model=object(),
+                          pose=object(), decode=stubs.decode, detect=stubs.detect, points=stubs.points)
+        assert n == 0 and not hasattr(s, "spin") and stubs.decoded == []
+
     def test_no_model_or_no_lateral_calibration_is_a_no_op(self):
         s = shot()
         assert ST.time_spins([s], "v.mp4", VIEW, model=None, pose=object()) == 0

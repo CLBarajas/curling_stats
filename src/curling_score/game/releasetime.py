@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+import os
 
 import cv2
 import numpy as np
@@ -168,12 +169,30 @@ def keep_windows(shots, *, unreleased: bool = True) -> list[tuple[float, float]]
     return out
 
 
+def model_fits(view) -> bool:
+    """Whether the release model in use was made for a camera like ``view``.
+
+    The default (`weights.RELEASE_NAME`) learned the long cameras: the thrower
+    a sheet's length off and nearly level with the lens. An end camera has him
+    a few metres below it, and on Rochester's (Go_JOSxJPsQ end 1, 2026-11-11)
+    that model read the hand off 0.8-5.8 m past the tee on 13 rocks; on the
+    three looked at -- rocks 11, 12 and 16 -- the hand was still on the handle
+    0.4 s later. A wrong release moves the slide and release lines, so an end
+    camera is read only by a model named for it (`weights.RELEASE_ENV_VAR`)."""
+    from curling_score import weights
+
+    if not getattr(view, "end_camera", False):
+        return True
+    return os.environ.get(weights.RELEASE_ENV_VAR, "").strip().lower() not in ("", "none")
+
+
 def keeper_for(shots, view, model):
     """The lane keeper for these shots' release reads on ``view``, the camera
-    facing the thrower; None when there will be no read -- no model, or a view
-    that cannot place the rock across the sheet -- so nothing is kept for one.
+    facing the thrower; None when there will be no read -- no model, a view
+    that cannot place the rock across the sheet, or an end camera the model
+    was not made for (`model_fits`) -- so nothing is kept for one.
     """
-    if model is None or view is None or not view.has_lateral:
+    if model is None or view is None or not view.has_lateral or not model_fits(view):
         return None
     try:
         return lanekeep.LaneKeeper(view, keep_windows(shots))

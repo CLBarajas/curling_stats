@@ -850,3 +850,163 @@ class TestTheBandsFirstSamples(Delivery):
         d = self.path(track=self.entering(), t_band=self.track()[0][0] - L.DELIVERY_PAST_BAND_S)
         t_band = self.track()[0][0] - self.T
         assert any(abs(p[0] - t_band) < 1e-6 for p in d)
+
+
+# Rochester's two end cameras as Go_JOSxJPsQ fitted them: each above its own
+# hog line, its view ending a quarter of a metre past it.
+END_HOG_VIEW = SideView(rect=(964, 6, 950, 838), tee_row=386.07, hog_row=802.55, d_m=15.5305,
+                        centre_col=492.61, lat_px_per_m_at_tee=169.943,
+                        centre_line=(498.891, -0.016271), end_camera=True)
+END_DEST_VIEW = SideView(rect=(6, 6, 950, 838), tee_row=390.59, hog_row=805.55, d_m=16.0167,
+                         centre_col=438.65, lat_px_per_m_at_tee=175.026,
+                         centre_line=(432.4, 0.016008), end_camera=True)
+
+
+def slide(view, to_yp=6.5, slope=0.03, t0=100.0, speed=2.0):
+    """The proposer's samples for a rock sliding at an end camera from its tee,
+    drifting ``slope`` metres to the thrower's right a metre."""
+    n = int(to_yp / speed * 30)
+    return [sample_at(view, slope * speed * i / 30, speed * i / 30, t0 + i / 30) for i in range(n)]
+
+
+class TestEndCameraFit:
+    def test_a_box_pinned_to_the_view_s_last_row_is_not_where_the_stone_is(self):
+        # The band runs 3 m past the hog line; the view does not. A stone
+        # leaving under the camera keeps a box at the frame's bottom.
+        assert band_crop(END_HOG_VIEW)[1] > END_HOG_VIEW.rect[3]
+        pinned = [(103.3 + i / 30, 300.0 - 3 * i, 838.0, 80.0) for i in range(8)]
+        track = L.hog_track(crossing_for(slide(END_HOG_VIEW) + pinned, key=4), END_HOG_VIEW)
+        assert track and max(t for t, *_ in track) < 103.3
+
+    def test_its_line_is_the_last_three_metres_to_the_hog_line(self):
+        track = L.hog_track(crossing_for(slide(END_HOG_VIEW, slope=0.03), key=4), END_HOG_VIEW)
+        assert L.fit_line(track) is None                 # nothing past the hog line to fit
+        fit = L.pass_fit(track, END_HOG_VIEW)
+        assert fit.b == pytest.approx(-0.03, abs=1e-6)   # x = a + b*y, y falling down the sheet
+        assert fit.n == sum(1 for *_s, yp in track if yp >= C.TEE_TO_HOGLINE_M - 3.0)
+
+    def test_a_rock_lost_two_metres_short_of_the_line_has_none(self):
+        track = L.hog_track(crossing_for(slide(END_HOG_VIEW, to_yp=4.9), key=4), END_HOG_VIEW)
+        assert L.pass_fit(track, END_HOG_VIEW) is None
+
+    def test_a_long_camera_keeps_its_window_past_the_hog_line(self):
+        track = straight(0.3, -0.02)
+        assert L.pass_fit(track, HOG_VIEW) == L.fit_line(track)
+
+
+def end_box(view, x, y, conf=0.9):
+    """`detect_band`'s box for a stone centred (x, y) metres from the tee of an
+    end camera facing the house."""
+    row = view.row_for(y + C.STONE_RADIUS_M)
+    return (view.centre_col_at(view.row_for(y)) + x * view.lateral_px_per_m(view.row_for(y)), row,
+            0.291 * view.lateral_px_per_m(row), conf)
+
+
+class TestFindPathEnd:
+    def read(self, per_frame, t_leave=100.0, t_rest=120.0):
+        asked = []
+
+        def decode(video, rect, t0, t1, fps):
+            asked.append((rect, t0, t1, fps))
+            return [object()] * len(per_frame), [t0 + i / fps for i in range(len(per_frame))]
+
+        def detect(model, frames, times, lo, hi, colors, imgsz=800, conf=0.35):
+            asked.append((lo, hi, tuple(colors)))
+            return [per_frame for _ in colors]
+
+        return L.find_path_end(object(), "v.mp4", END_DEST_VIEW, "red", t_leave, t_rest,
+                               decode=decode, detect=detect), asked
+
+    def arriving(self, n=40, x0=1.0, park=None):
+        """A rock coming in over the hog line at 1 m/s from the eleventh frame,
+        curling left; ``park`` a stone sitting at the view's edge throughout."""
+        frames = []
+        for i in range(n):
+            dets = [end_box(END_DEST_VIEW, *park)] if park else []
+            if i >= 10:
+                k = i - 10
+                dets.append(end_box(END_DEST_VIEW, x0 - 0.004 * k, 6.3 - 0.2 * k))
+            frames.append(dets)
+        return frames
+
+    def test_it_follows_the_rock_in_from_the_view_s_edge(self):
+        path, asked = self.read(self.arriving())
+        assert path[0] == pytest.approx((6.3, 1.0), abs=1e-6)
+        assert path[-1][0] == pytest.approx(6.3 - 0.2 * 29, abs=1e-6)
+        assert [y for y, _x in path] == sorted((y for y, _x in path), reverse=True)
+
+    def test_it_reads_one_band_of_the_house_camera_from_four_seconds_on(self):
+        _path, asked = self.read(self.arriving())
+        assert asked[0] == (END_DEST_VIEW.rect, 104.0, 121.0, L.PATH_FPS)
+        assert asked[1] == (int(END_DEST_VIEW.tee_row) - 80, 838, ("red",))
+
+    def test_a_stone_parked_at_the_edge_is_not_the_rock(self):
+        path, _asked = self.read(self.arriving(park=(-0.8, 6.2)))
+        assert path[0][1] == pytest.approx(1.0, abs=1e-6)
+
+    def test_nothing_coming_in_is_no_path(self):
+        assert self.read([[] for _ in range(20)])[0] == []
+        assert self.read(self.arriving(), t_leave=None)[0] == []
+
+
+class TestTimeLinesOnEndCameras:
+    def shot(self, crossing, **kw):
+        return TestTimeLines.shot(self, crossing, **kw)
+
+    def run(self, shots, **kw):
+        decoded = []
+
+        def decode(video, rect, t0, t1, fps):
+            decoded.append((rect, round(t0 - 100.0, 2), round(t1 - 100.0, 2), fps))
+            return [object()] * 3, [t0, t0 + 0.1, t0 + 0.2]
+
+        def detect(model, frames, times, lo, hi, color, imgsz=800, conf=0.35):
+            return [[] for _ in frames]
+
+        self.n = L.time_lines(shots, "v.mp4", END_HOG_VIEW, END_DEST_VIEW, model=object(),
+                              decode=decode, detect=detect, **kw)
+        return decoded
+
+    def test_a_rock_gets_a_line_with_no_final_line(self):
+        s = self.shot(crossing_for(slide(END_HOG_VIEW), key=4))
+        self.run([s])
+        assert self.n == 1 and s.line.final_refused and s.line.held_broom
+        assert s.line.at_broom_x is None and s.line.miss is None and s.line.side is None
+        assert s.line.hog_path and max(yp for *_s, yp in s.line.track) > C.TEE_TO_HOGLINE_M - 0.1
+
+    def test_where_it_crossed_the_hog_line_is_read_off_its_own_line(self):
+        # Sliding 0.03 m to the right a metre from the centre of the tee: at
+        # the hog line 6.401 m on, 0.192 m right.
+        s = self.shot(crossing_for(slide(END_HOG_VIEW, slope=0.03), key=4))
+        self.run([s])
+        assert s.line.at_hog_x == pytest.approx(0.03 * C.TEE_TO_HOGLINE_M, abs=1e-6)
+        assert s.line.at_hog_offset is None              # no start seen: nothing to aim from
+
+    def test_a_refused_final_line_on_a_long_camera_still_has_no_hog_figure(self):
+        track = straight(0.3, -0.02)
+        assert L.measure(L.fit_line(track), track, None, (1.0, 0.0), final=None).at_hog_x is None
+
+    def test_nothing_is_read_past_the_hog_line_on_the_thrower_s_camera(self):
+        # A long camera's track this short is read on at 6.5-9.0 s; this one's
+        # stops where its view does.
+        decoded = self.run([self.shot(crossing_for(slide(END_HOG_VIEW), key=4))])
+        assert not [w for w in decoded if w[1:] == (6.5, 9.0, 30.0)]
+
+    def test_the_house_camera_is_read_from_four_seconds_after_the_crossing(self):
+        decoded = self.run([self.shot(crossing_for(slide(END_HOG_VIEW), key=4))])
+        assert [w for w in decoded if w[3] == L.PATH_FPS] == [(END_DEST_VIEW.rect, 7.8, 21.0, L.PATH_FPS)]
+
+    def test_a_refused_crossing_is_followed_from_its_track_s_last_sample(self):
+        c = crossing_for(slide(END_HOG_VIEW), key=4)
+        refused = longview.Crossing(None, "speed 0.99 m/s is not a delivery", longview.KEY_BAD_SPEED,
+                                    track_key=4, samples=c.samples)
+        s = self.shot(refused, t_hog_s=None)
+        decoded = self.run([s])
+        t_last = L.hog_track(refused, END_HOG_VIEW)[-1][0] - 100.0
+        assert s.line is not None
+        assert [w[1] for w in decoded if w[3] == L.PATH_FPS] == [round(t_last + L.END_PATH_FROM_S, 2)]
+
+    def test_the_plan_reads_ahead_the_same_windows(self):
+        s = self.shot(crossing_for(slide(END_HOG_VIEW), key=4))
+        planned = L.planned_windows([s], END_HOG_VIEW, END_DEST_VIEW, False)
+        assert [(r, round(t0 - 100.0, 2), round(t1 - 100.0, 2), f) for r, t0, t1, f in planned] == self.run([s])

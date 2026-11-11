@@ -306,6 +306,22 @@ def test_a_keeper_is_made_only_for_a_read():
     assert releasetime.keeper_for(shots, None, model=object()) is None
 
 
+def test_an_end_camera_is_read_only_by_a_model_named_for_it(monkeypatch):
+    # release1 learned the long cameras; on Rochester's end cameras it called
+    # the hand off while it was on. No keeper, so no release and no aim lines.
+    from curling_score import weights
+
+    shots = [SimpleNamespace(release=SimpleNamespace(t=100.0))]
+    end_view = dataclasses.replace(VIEW, end_camera=True)
+    monkeypatch.delenv(weights.RELEASE_ENV_VAR, raising=False)
+    assert releasetime.keeper_for(shots, end_view, model=object()) is None
+    assert releasetime.keeper_for(shots, VIEW, model=object()) is not None
+    monkeypatch.setenv(weights.RELEASE_ENV_VAR, "weights/rccrelease1.pt")
+    assert releasetime.keeper_for(shots, end_view, model=object()) is not None
+    monkeypatch.setenv(weights.RELEASE_ENV_VAR, "none")
+    assert releasetime.keeper_for(shots, end_view, model=object()) is None
+
+
 def test_a_release_found_after_the_keeper_was_made_keeps_its_seconds():
     # No release when the end's keeper is made: it keeps hogtime's window for
     # the rock, which hangs off its arrival and ends 7 s before it. The long
