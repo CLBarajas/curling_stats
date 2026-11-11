@@ -93,6 +93,17 @@ MIN_SEPARATION_S = 10.0
 # a rock missed between them makes it two. Judged against the end's own
 # median interval, because how long a team takes over a rock varies a lot.
 MISSED_GAP_FACTOR = 1.6
+# The median is only this end's rhythm while most of its rocks are there. On
+# an end with several already missing it is a two-rock interval, and the
+# factor then asks for a three-rock gap: Rochester's Go_JOSxJPsQ end 3 had
+# three blues unseen (a guard short of a house-only overhead, two hits the
+# first pass refused), a median of 86.3 s and so a bar of 138 s, and lost two
+# real reds 88 s and 54 s after the red before them. Both had been seen
+# leaving the thrower's hand. A candidate a release vouches for -- an arrival
+# paired with one, or a release standing in for an arrival nothing saw -- is a
+# throw whatever the time says, so the time is not asked: if it follows its
+# own colour, the other team's rock between them is the one that was missed.
+# The ten seconds no two throws are ever within still holds.
 
 
 # Worth more than the whole spread of WEIGHT_BY_REASON, so where the rules
@@ -103,6 +114,12 @@ MISSED_GAP_FACTOR = 1.6
 # red-yellow pair. Only real pairings count; a release standing in for an
 # arrival never seen stays ranked below every seen arrival, as above.
 PAIRED_BONUS = 1.0
+
+
+def vouched(dv, paired=frozenset()) -> bool:
+    """Whether a release was seen for this candidate: an arrival matched to
+    one, or a release standing in for an arrival never seen."""
+    return id(dv) in paired or getattr(dv, "release", None) is not None
 
 
 def weight(dv, paired=frozenset()) -> float:
@@ -131,6 +148,7 @@ def fit_end(deliveries, per_end: int = C.STONES_PER_END,
     may follow one another only when the time between them has room for the
     other team's unseen rock, which is then counted against that team's eight
     and the end's sixteen; :func:`shots.from_deliveries` shows it as a blank.
+    A candidate a release vouches for (:func:`vouched`) needs no such room.
 
     ``paired`` holds ``id(delivery)`` for the arrivals matched to a release
     (see :func:`paired_ids`); they win a tie over anything unmatched.
@@ -158,7 +176,8 @@ def fit_end(deliveries, per_end: int = C.STONES_PER_END,
                 if dv.t_enter - prev.t_enter < min_separation_s:
                     continue  # no two stones are thrown that close together
                 if dv.color == prev.color:
-                    if dv.t_enter - prev.t_enter < gap_for_missed:
+                    if (dv.t_enter - prev.t_enter < gap_for_missed
+                            and not vouched(dv, paired)):
                         continue  # a team cannot throw twice in a row
                     # Room for the other team's rock between them: an unseen one.
                     other = "yellow" if dv.color == "red" else "red"

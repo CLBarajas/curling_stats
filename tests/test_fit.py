@@ -387,3 +387,44 @@ class TestAHogTakenBackFromItsArrivalStaysPaired:
     def test_paired_ids_counts_both(self):
         a, hog = dv("red", 10.0), dv("yellow", 60.0, reason="hogged")
         assert fit.paired_ids({"r": a}, [hog]) == {id(a), id(hog)}
+
+
+class TestAReleaseVouchesForAThrow:
+    """An end with several rocks unseen has a median interval of two rocks, so
+    the gap that may hold a missed one is three: Rochester's Go_JOSxJPsQ end 3
+    lost two real reds that way, both seen leaving the thrower's hand."""
+
+    def end_with_blues_unseen(self):
+        # Y R . R . R Y R, a slow end with two blues never seen: every gap is
+        # 90 s, so the bar for a missed rock is 144 s and no gap clears it.
+        return [dv("yellow", 0.0), dv("red", 90.0), dv("red", 180.0), dv("red", 270.0),
+                dv("yellow", 360.0), dv("red", 450.0)]
+
+    def test_unvouched_the_reds_in_a_row_are_cut_to_one(self):
+        found = self.end_with_blues_unseen()
+        assert len(fit.fit_end(found)) < len(found)
+
+    def test_paired_with_a_release_they_are_all_kept(self):
+        found = self.end_with_blues_unseen()
+        kept = fit.fit_end(found, paired={id(found[2]), id(found[3])})
+        assert kept == found
+
+    def test_a_release_standing_in_for_an_arrival_vouches_too(self):
+        import dataclasses
+
+        found = self.end_with_blues_unseen()
+        found[2] = dataclasses.replace(found[2], release=object())
+        found[3] = dataclasses.replace(found[3], release=object())
+        assert fit.fit_end(found) == found
+
+    def test_the_other_teams_unseen_rocks_still_count_against_its_eight(self):
+        # Eight yellows seen, then a vouched red after a red: the yellow
+        # between them would be a ninth, so the pair still cannot both stand.
+        found = alternating(16)
+        extra = dv("red", 16 * 50.0 + 20.0)
+        kept = fit.fit_end(found + [extra], paired={id(extra)})
+        assert len(kept) == 16
+
+    def test_no_two_throws_within_ten_seconds_even_when_vouched(self):
+        a, b = dv("red", 100.0), dv("red", 104.0)
+        assert len(fit.fit_end([a, b], paired={id(a), id(b)})) == 1
