@@ -374,6 +374,8 @@ def _end_views(calib_frames, panels, club, progress, cameras=None, end_camera=Tr
 
     h, w = calib_frames[0].shape[:2]
     plate = np.median(np.stack([f.astype("float32") for f in calib_frames]), axis=0).astype("uint8")
+    if end_camera and hasattr(panels, "panels"):
+        plate = endcam.hide(plate, panels.panels)
     kind = "end" if end_camera else "long"
     try:
         rects = _side_rects(panels, club, w, h)

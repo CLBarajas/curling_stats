@@ -78,3 +78,33 @@ class TestEndCameraCrossing:
                                             offset_s=0.0, max_gap_s=sidemodel.STRADDLE_GAP_MAX_S)
         assert got.t == pytest.approx(2686.0 + (C.TEE_TO_HOGLINE_M - 4.4) / 2.18, abs=0.04)
         assert got.track_key % 1000 == 2
+
+
+class TestDarkHogLine:
+    """A dark hog line is the darkest row below the house only when it is one."""
+
+    def ice(self, line_level=None, step=None):
+        img = np.full((400, 300, 3), 230, np.uint8)
+        if step is not None:                # a shading step in the ice, no line
+            img[step:] = 216
+        if line_level is not None:
+            img[250:254] = line_level
+        return img
+
+    def test_a_painted_line_is_found(self):
+        # Rochester's sheet A and B lines are 68-85 grey levels under the ice.
+        assert endcam.dark_hog_row(self.ice(line_level=150), 100, 260) == pytest.approx(251.5, abs=1)
+
+    def test_a_view_that_stops_short_of_its_hog_line_is_refused(self):
+        # Sheet C's right camera: the darkest row it has is a 14-level step.
+        with pytest.raises(SideViewError, match="no dark hog line"):
+            endcam.dark_hog_row(self.ice(step=300), 100, 260)
+
+
+class TestHide:
+    def test_an_inset_is_painted_the_ice(self):
+        plate = np.full((200, 300, 3), 230, np.uint8)
+        plate[150:200, 0:80] = (150, 120, 60)     # an overhead inset's teal ring
+        out = endcam.hide(plate, [(4, 154, 70, 46)])
+        assert (out[146:200, 0:82] == 230).all()
+        assert (plate[150:200, 0:80] == (150, 120, 60)).all()   # the plate itself untouched
