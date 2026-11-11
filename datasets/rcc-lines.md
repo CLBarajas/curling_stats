@@ -223,3 +223,14 @@ that he was a foot and a half wide. This is the first question for someone who c
    far end is worth building.
 7. **For the viewer, from Chris (not done):** the delivery track in "The line" is drawn one colour whoever
    threw; it should be the rock's colour (red or the club's blue, `stones` in the timeline).
+
+## Also on this branch (2026-11-11)
+
+- `rcc-sheets` is merged in (sheets B, C and D's profiles), so the two can be run together.
+- **The channel says the sheet.** Rochester streams a sheet a channel; `clubs.for_sheet` picks that sheet's
+  profile from the video's channel, so `--club rochester` (or a worker's `CLUB=rochester`) reads any of the four
+  with its own profile, and the timeline's `source.sheet` is "A" to "D" where it was null (the viewer said
+  "sheet ?"). The four channel ids were read from a stream of each sheet. A sheet here is a letter; Granite's
+  is a number, and the hosted ice report sorts sheets as numbers (`service/ice_report.py`), which would need a
+  look before the two were ever hosted together.
+- The delivery track of a rock whose release was not read is drawn in the rock's colour.

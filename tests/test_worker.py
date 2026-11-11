@@ -113,6 +113,27 @@ class TestProcessJob:
                                out_dir=tmp_path / "out", analyze_fn=analyze_fn, fetch_info=info)
         assert seen == [clubs.GRANITE, clubs.ARDSLEY]
 
+    def test_a_club_s_channel_picks_the_sheet_s_profile(self, tmp_path, monkeypatch):
+        """Rochester streams a sheet a channel, and each sheet has a profile:
+        a worker set up with CLUB=rochester reads sheet C's video as sheet C."""
+        from curling_score import clubs
+        seen = []
+
+        def analyze_fn(url, **kw):
+            seen.append(kw["club"])
+            return fake_doc()
+
+        def sheet_c(url):
+            return VideoInfo("R-7qQORH0dQ", "2026-11-09 Mon Open - Aimi, Steven VS. Curtis, James",
+                             7800.0, True, False, None, None, "UCsAcOSWFFZDKce1DL5umYOA")
+
+        monkeypatch.setenv("CLUB", "rochester")
+        for info in (sheet_c, fake_info):
+            worker.process_job(JOB, FakeApi([]), "home", root=tmp_path, weights=None,
+                               out_dir=tmp_path / "out", analyze_fn=analyze_fn, fetch_info=info)
+        # A channel the club does not know keeps the profile it was told.
+        assert seen == [clubs.ROCHESTER_C, clubs.ROCHESTER]
+
     def test_club_overrides_the_channel(self, tmp_path, monkeypatch):
         """A worker set up for one club whose channel carries many venues."""
         from curling_score import clubs

@@ -419,6 +419,7 @@ def resolve_skip_longview() -> bool:
 
 def _club(channel_id):
     """The club whose stream this is: ``CLUB`` if set, else the video's channel.
+    Where ``CLUB`` streams each sheet on its own channel, that sheet's profile.
 
     ``CLUB`` names a profile in ``clubs.CLUBS``, for a worker set up for one
     club whose channel carries many venues' streams (CurlingZone's, for
@@ -426,7 +427,8 @@ def _club(channel_id):
     """
     name = os.environ.get("CLUB")
     if name:
-        return clubs.CLUBS[name]
+        # A club with a channel a sheet (Rochester): the profile for this one.
+        return clubs.for_sheet(clubs.CLUBS[name], channel_id)
     return clubs.for_channel(channel_id)
 
 

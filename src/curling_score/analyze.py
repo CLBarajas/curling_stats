@@ -1218,6 +1218,14 @@ def _with_club_models(fn):
     return run
 
 
+def sheet_for(sheet, info, club):
+    """Which sheet a video is: the caller's word, else the title's number,
+    else the one sheet its club's profile reads (Rochester's "A" to "D")."""
+    if sheet is not None:
+        return sheet
+    return info.sheet if info.sheet is not None else club.sheet
+
+
 @_with_club_models
 def analyze(url, root=None, shot_fps=SHOT_FPS, progress=log.info,
             use_proxy: bool = True, weights=None, imgsz: int = 448,
@@ -1235,7 +1243,9 @@ def analyze(url, root=None, shot_fps=SHOT_FPS, progress=log.info,
     every timestamp and change the detection cache's keys -- so this saves the
     detection time, which is what dominates, not the download.
 
-    ``sheet`` overrides the number read from the title. ``game_format`` is
+    ``sheet`` overrides the number read from the title; a title that names
+    none leaves it to the club's profile, where that reads one sheet
+    (``Club.sheet``: Rochester's, picked by channel, `clubs.for_sheet`). ``game_format`` is
     ``"fours"`` or ``"doubles"``; ``None`` reads it from the title instead
     (see :func:`resolve_format`). ``skip_scoreboard`` leaves out the
     wall-board pass, and ``skip_longview`` leaves out the side views that time
@@ -1251,7 +1261,7 @@ def analyze(url, root=None, shot_fps=SHOT_FPS, progress=log.info,
     """
     phase = on_phase or _no_phase
     info = info or source.fetch_info(url)
-    sheet = sheet if sheet is not None else info.sheet
+    sheet = sheet_for(sheet, info, club)
     fmt = resolve_format(game_format, info.title)
     progress(f"{info.title} ({info.duration_s / 3600:.2f} h, sheet {sheet}, {fmt.name})")
 

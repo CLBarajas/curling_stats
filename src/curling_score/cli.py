@@ -58,8 +58,17 @@ def _analyze(args) -> int:
     # --device is for every detector, not the overhead one alone.
     device_mod.use(args.device)
     club = clubs.CLUBS[args.club]
+    # A club with a channel a sheet: the video's channel says which sheet this
+    # is, and so which of the club's profiles reads it.
+    info = None
+    if club.sheet_channels:
+        info = source.fetch_info(args.url)
+        sheet_club = clubs.for_sheet(club, info.channel_id)
+        if sheet_club is not club:
+            print(f"sheet {sheet_club.sheet}, by its channel: read as {sheet_club.name}")
+        club = sheet_club
     weights = args.weights if args.weights is not None else _default_weights(club)
-    doc = analyze_mod.analyze(args.url, root=args.cache_root, shot_fps=args.fps,
+    doc = analyze_mod.analyze(args.url, root=args.cache_root, shot_fps=args.fps, info=info,
                               use_proxy=not args.no_proxy,
                               weights=weights, imgsz=args.imgsz,
                               device=args.device, start_s=args.start,

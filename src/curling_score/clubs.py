@@ -82,6 +82,15 @@ class Club:
     # composite (`game/fixedboard.py`), read there instead of being found by
     # its markers. None: Granite's board, found and read by `game/scoreboard.py`.
     board: FixedBoard | None = None
+    # A club that streams each sheet on a channel of its own (Rochester's
+    # @RCCStreamingSheetA to D): channel id -> (the sheet's name, the profile
+    # that reads it), for `for_sheet`. Not ``channel_ids``: that picks a club
+    # for a worker that was told none, and a club with its own overhead model
+    # cannot be picked so. This picks among one club's sheets once the club is
+    # known. None: one profile reads every sheet, named by the title.
+    sheet_channels: dict | None = None
+    # The sheet this profile reads, where it reads only one.
+    sheet: str | None = None
 
 
 # The two houses are played toward from opposite directions, and Granite's
@@ -254,6 +263,13 @@ ROCHESTER = Club("rochester", (
     # half its boxes were not stones (rcc2).
     overhead_model="rcc1b.pt", side_model="rcc2b.pt",
     stone_display={"yellow": {"name": "Blue", "color": "#4d8ef0"}},
+    # Each sheet has a profile of its own below: its paint, how its cameras
+    # see it and where its board hangs differ. The channel says which.
+    sheet_channels={"UCC4CItKubmNVSPpsDInEcWQ": ("A", "rochester"),
+                    "UCeANiSRDAxfXybHkgQ0iY4w": ("B", "rochester-b"),
+                    "UCsAcOSWFFZDKce1DL5umYOA": ("C", "rochester-c"),
+                    "UCBhd8WiPmssoGcoYVSGcXJQ": ("D", "rochester-d")},
+    sheet="A",
     # The board camera, bottom centre, as sheet A frames it: red's cards hang
     # on the red band above the strip, blue's on the pale band below.
     board=FixedBoard(rect=(322, 850, 1276, 226), top="red", bottom="yellow"))
@@ -275,16 +291,16 @@ ROCHESTER_BD = replace(
                  "bottom": ("right", ROCHESTER.end_cameras["top"][1])},
     # Each sheet's board camera frames its board differently: rochester-b and
     # rochester-d say where. This profile is their common paint and cameras.
-    board=None)
+    board=None, sheet=None)
 # The board camera's rectangle is the composite's, the same on every sheet;
 # where the strip of numerals falls inside it is not. Sheet B's board sits
 # lower and further right, the BLANK ENDS box from 0.88 of the width, and its
 # camera is soft: the black cards blur to V 75-115, and an 8 read at 0.986,
 # short of the reader's 0.99.
-ROCHESTER_B = replace(ROCHESTER_BD, name="rochester-b", board=replace(
+ROCHESTER_B = replace(ROCHESTER_BD, name="rochester-b", sheet="B", board=replace(
     ROCHESTER.board, strip_x=(0.125, 0.875), card_v=100))
 # Sheet D's fills the width: the strip's "1" starts at 0.115, "18" ends at 0.865.
-ROCHESTER_D = replace(ROCHESTER_BD, name="rochester-d", board=replace(
+ROCHESTER_D = replace(ROCHESTER_BD, name="rochester-d", sheet="D", board=replace(
     ROCHESTER.board, strip_x=(0.105, 0.875)))
 # Sheet C (R-7qQORH0dQ, 2026-11-09): painted as A, but its left end camera
 # sees the teal bluer (H 100-101) than A's (H 95), so its band runs to H 106 --
@@ -294,7 +310,7 @@ ROCHESTER_D = replace(ROCHESTER_BD, name="rochester-d", board=replace(
 # board camera's picture starts above it, so that fit fails ("no dark hog
 # line in view") and, as analyze stands, so do both end cameras' splits.
 ROCHESTER_C = replace(
-    ROCHESTER, name="rochester-c",
+    ROCHESTER, name="rochester-c", sheet="C",
     end_cameras={"top": ("left", replace(ROCHESTER.end_cameras["top"][1],
                                          ring=(((70, 18, 60), (106, 140, 240)),))),
                  "bottom": ROCHESTER.end_cameras["bottom"]},
@@ -305,6 +321,16 @@ ROCHESTER_C = replace(
 
 CLUBS = {c.name: c for c in (GRANITE, CINCINNATI, SWIFT_CURRENT, ARDSLEY, MARTENSVILLE, DALLAS,
                              ROCHESTER, ROCHESTER_BD, ROCHESTER_B, ROCHESTER_C, ROCHESTER_D)}
+
+
+def for_sheet(club: Club, channel_id) -> Club:
+    """The profile for the sheet ``channel_id`` streams, where ``club`` gives
+    each sheet a channel and a profile of its own; ``club`` itself otherwise,
+    and for a channel it does not know. So a run told only "rochester" reads
+    sheet C's stream with sheet C's profile, and the timeline says which sheet
+    it was (``Club.sheet``)."""
+    name = (club.sheet_channels or {}).get(channel_id)
+    return CLUBS[name[1]] if name else club
 
 
 def for_channel(channel_id) -> Club:
