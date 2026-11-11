@@ -6,6 +6,7 @@ is a profile here rather than a branch through the code.
 
 from dataclasses import dataclass
 
+from curling_score.game.fixedboard import FixedBoard
 from curling_score.geometry import constants as C
 from curling_score.geometry.calibrate import (
     BLUE_HSV, DARK_HSV, GRANITE_HOUSE, RED_HSV, HousePaint,
@@ -77,6 +78,10 @@ class Club:
     # and everything downstream calls them red and yellow; this only changes
     # what a page says and draws (`timeline.build_document`'s ``stones``).
     stone_display: dict | None = None
+    # A wall scoreboard with a camera of its own at a fixed place in the
+    # composite (`game/fixedboard.py`), read there instead of being found by
+    # its markers. None: Granite's board, found and read by `game/scoreboard.py`.
+    board: FixedBoard | None = None
 
 
 # The two houses are played toward from opposite directions, and Granite's

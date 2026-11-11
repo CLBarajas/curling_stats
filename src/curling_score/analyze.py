@@ -261,7 +261,7 @@ def run_up_from(prev_end_s, start_s: float, *, crossed_games: bool = False) -> f
     return max(0.0, min(lookback, floor))
 
 
-def read_board(path, game, progress=log.info, *, back_to_s=None):
+def read_board(path, game, progress=log.info, *, back_to_s=None, board=None):
     """One game's wall board, or None if it could not be read. Never raises.
 
     By the time this runs the job has already paid for the download, the
@@ -275,8 +275,15 @@ def read_board(path, game, progress=log.info, *, back_to_s=None):
     different responses from whoever reads the logs.
     """
     try:
+        # A board with a camera of its own (`clubs.Club.board`) is read where
+        # the profile says it is; the sampler and the scoring are the same.
+        read_at = None
+        if board is not None:
+            from curling_score.game import fixedboard
+
+            read_at = fixedboard.reader(path, board)
         return sb.read_game_board(path, game.start_s, game.end_s, game.ends[-1].number,
-                                  back_to_s=back_to_s)
+                                  read_at=read_at, back_to_s=back_to_s)
     except Exception:
         log.exception("game %s: the wall scoreboard pass failed", game.index + 1)
         progress(f"  game {game.index + 1}: board read failed, see the log")
@@ -535,10 +542,10 @@ def board_block(got) -> BoardRead:
 
 
 def board_for_game(path, game, progress=log.info, *,
-                   back_to_s=None) -> BoardRead | None:
+                   back_to_s=None, board=None) -> BoardRead | None:
     """One game's wall board from the original, or None. Never raises."""
     progress(f"  game {game.index + 1}: reading the wall scoreboard...")
-    got = read_board(path, game, progress=progress, back_to_s=back_to_s)
+    got = read_board(path, game, progress=progress, back_to_s=back_to_s, board=board)
     if got is None:
         progress(f"  game {game.index + 1}: board not read")
         return None
@@ -553,13 +560,13 @@ def board_for_game(path, game, progress=log.info, *,
     return board
 
 
-def recording_board_reader(path, progress=log.info):
+def recording_board_reader(path, progress=log.info, board=None):
     """``read_board`` for a recording's `build_games`: each game's board, read
     once, walking back as far as its first end's end when the late reads all
     fail (`sb.read_game_board`). A live stream reads it after every end
     instead, and keeps the newest read that worked."""
     return lambda game: board_for_game(path, game, progress=progress,
-                                       back_to_s=game.ends[0].end_s)
+                                       back_to_s=game.ends[0].end_s, board=board)
 
 
 class StageClock:
@@ -1315,7 +1322,9 @@ def analyze(url, root=None, shot_fps=SHOT_FPS, progress=log.info,
     samples = profile.build_profile(read_path, read_setups, sweep=sweep, detector=detector)
     games = segment.segment_games(
         samples, min_end_s=fmt.delivered_per_end * segment.MIN_DELIVERY_GAP_S)
-    if not skip_scoreboard:
+    # A club with a board camera of its own has one game a stream so far
+    # (Rochester): nothing for the board to join or split.
+    if not skip_scoreboard and club.board is None:
         # The empty sheet is a changeover's cue, and the board settles it both
         # ways. A pause in a game can sit empty as long, and the board, still
         # up through it, joins the game back together; a changeover with
@@ -1355,7 +1364,7 @@ def analyze(url, root=None, shot_fps=SHOT_FPS, progress=log.info,
     out_games = build_games(
         ctx, games, phase=phase,
         read_board=(None if skip_scoreboard
-                    else recording_board_reader(path, progress)))
+                    else recording_board_reader(path, progress, board=club.board)))
     phase("detect", 1.0, "all ends detected")
     phase("scoreboard", 1.0, "skipped" if skip_scoreboard else "scoreboard read")
     phase("rules", 1.0, "timeline built")
