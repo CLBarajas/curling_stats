@@ -381,12 +381,24 @@ def _end_views(calib_frames, panels, club, progress, cameras=None, end_camera=Tr
         rects = _side_rects(panels, club, w, h)
         views = {}
         for house, (side, paint) in (cameras or club.end_cameras).items():
-            fit = endcam.solve(plate, rects[side], paint, name=f"{side} ({house} house)",
-                               end_camera=end_camera)
+            # One end camera that cannot be fitted costs only what it sees:
+            # Rochester's sheet C right camera has no hog line in its picture,
+            # and dropping both took the left camera's hog times, brooms and
+            # far hog line from every end. Each pass checks for its own view.
+            try:
+                fit = endcam.solve(plate, rects[side], paint, name=f"{side} ({house} house)",
+                                   end_camera=end_camera)
+            except sideview.SideViewError as exc:
+                if not end_camera:
+                    raise
+                progress(f"{side} {kind} camera, {house} house: unusable, left out: {exc}")
+                continue
             progress(f"{side} {kind} camera, {house} house: tee row {fit.view.tee_row:.1f}, hog row "
                      f"{fit.view.hog_row:.1f}, d {fit.view.d_m:.2f} m, ring {fit.ring_residual_m * 100:.1f} cm, "
                      f"centre line on {fit.centre_rows} rows")
             views[hogtime.CAMERA_FOR[house]] = fit.view
+        if not views:
+            raise sideview.SideViewError("no end camera could be fitted")
         if club.logo_rows and not end_camera:
             views = _tie_on_logo(plate, views, rects, cameras, club.logo_rows, progress)
         return views
@@ -714,7 +726,11 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
     # mistook for arrivals, pushed down the sheet: the long camera facing this
     # house followed each to where it stopped. Without that camera, the
     # overhead's timing alone (`farfollow.entry_track`).
-    dest_view = sideviews[hogtime.CAMERA_FOR[end.house]] if sideviews is not None else None
+    # Either may be missing where one end camera could not be fitted
+    # (`_end_views`); every pass below checks for the view it reads.
+    dest_view = sideviews.get(hogtime.CAMERA_FOR[end.house]) if sideviews is not None else None
+    throw_view = (sideviews.get(hogtime.CAMERA_FOR[OTHER_HOUSE[end.house]])
+                  if sideviews is not None else None)
     stages.mark("rules")
     matched = thrown_by
     arrivals, thrown_by, unaccounted, n_followed = farfollow.place(
@@ -752,10 +768,10 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
     # long camera facing the thrower still sees it slide out of the hack.
     lost = []
     short = fmt.delivered_per_end - len(kept)
-    if sideviews is not None and 0 < short <= shots_mod.MAX_FILL:
+    if throw_view is not None and 0 < short <= shots_mod.MAX_FILL:
         stages.mark("rules")
         lost = sidereleases.lost_rocks(
-            path, sideviews[hogtime.CAMERA_FOR[OTHER_HOUSE[end.house]]],
+            path, throw_view,
             kept=kept, releases=releases, thrown_by=thrown_by, arrivals=arrivals,
             house_frames=seq, t0=since, t1=end.end_s)
         stages.mark("lost")
@@ -810,8 +826,8 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
     # cannot reach back into the shot list.
     thinking.time_shots(shots, far_seq, far.view_y_min_m)
     stages.mark("rules")
-    if sideviews is not None:
-        hog_view = sideviews[hogtime.CAMERA_FOR[OTHER_HOUSE[end.house]]]
+    if throw_view is not None:
+        hog_view = throw_view
         # Each pass decodes its next rock's window while it reads this one's.
         with longview.reading_ahead() as ahead:
             # The release read decodes nothing of its own: a strip of the lane
@@ -823,14 +839,14 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
             try:
                 with longview.keeping(keeper):
                     hogtime.time_hog_crossings(
-                        shots, path, sideviews[hogtime.CAMERA_FOR[OTHER_HOUSE[end.house]]])
+                        shots, path, throw_view)
                     stages.mark("hog")
                     # The releases the throwing panel lost -- a thrower whose body hides
                     # the stone from above -- from hogtime's camera, which faces the
                     # delivery. Before the brooms and lines: both read what it gives.
                     unreleased = [s for s in shots if getattr(s, "release", None) is None]
                     n_side = sidereleases.time_side_releases(
-                        shots, path, sideviews[hogtime.CAMERA_FOR[OTHER_HOUSE[end.house]]])
+                        shots, path, throw_view)
                     stages.mark("side")
                     if n_side:
                         progress(f"    end {end.number}: {n_side} release(s) from the long camera")
@@ -838,7 +854,7 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
                         # release is the better anchor, and the lines need it.
                         n_again = hogtime.retime_released(
                             shots, unreleased, path,
-                            sideviews[hogtime.CAMERA_FOR[OTHER_HOUSE[end.house]]])
+                            throw_view)
                         progress(f"    end {end.number}: {n_again} hog crossing(s) read "
                                  f"again from those releases")
                     # Such a rock was kept for hogtime's window, which hangs off
@@ -847,7 +863,7 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
                     # The skip's target broom, from the camera that sees the
                     # destination house -- the OTHER camera from hogtime's.
                     broomtime.time_target_brooms(
-                        shots, path, sideviews[hogtime.CAMERA_FOR[end.house]],
+                        shots, path, dest_view,
                         model=ctx.broom_model)
                     stages.mark("brooms")
                     # Where the rock's thrown line passed the skip's broom -- the
@@ -857,8 +873,8 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
                     # Timed: the delivery's read costs the live lane most of what this adds.
                     t_lines = time.monotonic()
                     n_lines = linetime.time_lines(
-                        shots, path, sideviews[hogtime.CAMERA_FOR[OTHER_HOUSE[end.house]]],
-                        sideviews[hogtime.CAMERA_FOR[end.house]], model=ctx.line_model,
+                        shots, path, throw_view,
+                        dest_view, model=ctx.line_model,
                         without_broom=fmt.line_without_broom)
                     progress(f"    end {end.number}: lines {n_lines}/{len(shots)} "
                              f"in {time.monotonic() - t_lines:.1f} s")
@@ -893,7 +909,7 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
             # crossing to start from; timed, for the live lane's budget.
             t_spin = time.monotonic()
             n_spin = spintime.time_spins(
-                shots, path, sideviews[hogtime.CAMERA_FOR[OTHER_HOUSE[end.house]]],
+                shots, path, throw_view,
                 model=ctx.line_model)
             progress(f"    end {end.number}: spin {n_spin}/{len(shots)} "
                      f"in {time.monotonic() - t_spin:.1f} s")
@@ -906,15 +922,15 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
                                far_line=setup.hog_line)
     # A house-only panel has no line: an end camera above the destination's
     # hog line sees the stone come in over it instead.
-    if sideviews is not None:
+    if dest_view is not None:
         n_far = fartime.time_far_crossings_from_end_camera(
-            shots, path, sideviews[hogtime.CAMERA_FOR[end.house]])
+            shots, path, dest_view)
         stages.mark("far")
         if n_far:
             progress(f"    end {end.number}: far hog line {n_far}/{len(shots)} from the end camera")
         if ctx.far_hog_from_long:
             n_long = fartime.time_far_crossings_from_long_camera(
-                shots, path, sideviews[hogtime.CAMERA_FOR[end.house]])
+                shots, path, dest_view)
             stages.mark("far")
             progress(f"    end {end.number}: far hog line {n_long}/{len(shots)} from the long camera")
     built = timeline.build_end(
@@ -923,8 +939,8 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
         fmt=fmt,
         placement=placed,
     )
-    if sideviews is not None and ctx.guards_from_long_m is not None:
-        view = sideviews[hogtime.CAMERA_FOR[end.house]]
+    if dest_view is not None and ctx.guards_from_long_m is not None:
+        view = dest_view
         n_guards = longguards.add(built, view, longguards.stones_reader(path, view),
                                   ctx.guards_from_long_m,
                                   **({} if ctx.guards_after_far_s is None

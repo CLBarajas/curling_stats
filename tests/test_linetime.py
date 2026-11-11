@@ -581,8 +581,8 @@ class TestAnalyzeCallsIt:
         src = (Path(__file__).resolve().parents[1] / "src/curling_score/analyze.py").read_text()
         assert src.index("linetime.time_lines(") > src.index("broomtime.time_target_brooms(")
         call = src[src.index("linetime.time_lines("):][:260]
-        assert "sideviews[hogtime.CAMERA_FOR[OTHER_HOUSE[end.house]]]" in call
-        assert "sideviews[hogtime.CAMERA_FOR[end.house]]" in call
+        assert "throw_view" in call and "throw_view = (sideviews.get(hogtime.CAMERA_FOR[OTHER_HOUSE[end.house]])" in src
+        assert "dest_view" in call and "dest_view = sideviews.get(hogtime.CAMERA_FOR[end.house])" in src
 
     def test_a_shot_starts_with_no_line(self):
         from curling_score.game.shots import Shot

@@ -214,7 +214,7 @@ class TestAnalyzeCallsIt:
         i_line = src.index("linetime.time_lines(")
         assert i_hog < i_rel < i_broom < i_line
         call = src[i_rel:][:200]
-        assert "sideviews[hogtime.CAMERA_FOR[OTHER_HOUSE[end.house]]]" in call
+        assert "throw_view" in call and "throw_view = (sideviews.get(hogtime.CAMERA_FOR[OTHER_HOUSE[end.house]])" in src
 
 
 # -- Rocks the overhead saw at neither end -------------------------------------
@@ -472,4 +472,4 @@ class TestAnalyzeSearchesAShortEnd:
         guard = src[:i_lost][-200:]
         assert "0 < short <= shots_mod.MAX_FILL" in guard
         call = src[i_lost:][:200]
-        assert "sideviews[hogtime.CAMERA_FOR[OTHER_HOUSE[end.house]]]" in call
+        assert "throw_view" in call and "throw_view = (sideviews.get(hogtime.CAMERA_FOR[OTHER_HOUSE[end.house]])" in src

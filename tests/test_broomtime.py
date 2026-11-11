@@ -183,5 +183,5 @@ class TestAnalyzeCallsIt:
         src = (Path(__file__).resolve().parents[1] / "src/curling_score/analyze.py").read_text()
         assert "broomtime.time_target_brooms(" in src
         call = src[src.index("broomtime.time_target_brooms("):][:200]
-        assert "sideviews[hogtime.CAMERA_FOR[end.house]]" in call
+        assert "dest_view" in call and "dest_view = sideviews.get(hogtime.CAMERA_FOR[end.house])" in src
         assert "weights_mod.broom_path()" in src
