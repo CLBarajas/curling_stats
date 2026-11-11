@@ -37,12 +37,14 @@ BEFORE_NEXT_S = 1.0
 NAMEABLE = ("unknown", "hogged")
 
 
-def _read_at(shot, next_shot) -> float:
+def _read_at(shot, next_shot, after_far_s: float = AFTER_FAR_S) -> float:
     """When to read the stones a rock left: just after its rest, or for one with
-    no arrival but a far hog crossing, once it has had time to stop past it."""
+    no arrival but a far hog crossing, once it has had time to stop past it.
+    ``after_far_s`` is that time where a club's guards take longer than DFW's
+    (`clubs.Club.guards_after_far_s`)."""
     t = shot["t_rest_s"] + AFTER_REST_S
     if shot.get("delivered_stone_index") is None and shot.get("t_far_s") is not None:
-        t = max(t, shot["t_far_s"] + AFTER_FAR_S)
+        t = max(t, shot["t_far_s"] + after_far_s)
         nxt = (next_shot or {}).get("t_release_s")
         if nxt is not None:
             t = min(t, nxt - BEFORE_NEXT_S)
@@ -68,7 +70,7 @@ def place(stones, view, known, from_m: float) -> list[dict]:
     return out
 
 
-def add(end: dict, view, read_stones, from_m: float) -> int:
+def add(end: dict, view, read_stones, from_m: float, after_far_s: float = AFTER_FAR_S) -> int:
     """Add the long camera's guards to each rock of a built ``end`` (and its
     final stones). ``read_stones(t)`` gives the ``(edge_row, cx, color)`` of
     the stones the view shows at ``t``. Returns how many long stones it added
@@ -80,7 +82,7 @@ def add(end: dict, view, read_stones, from_m: float) -> int:
             continue
         stones = shot.setdefault("stones", [])
         nxt = next((s for s in shots[i + 1:] if not s.get("missing")), None)
-        extra = place(read_stones(_read_at(shot, nxt)), view, stones, from_m)
+        extra = place(read_stones(_read_at(shot, nxt, after_far_s)), view, stones, from_m)
         if shot.get("delivered_stone_index") is None:
             new = [g for g in extra if g["color"] == shot.get("color")
                    and not any(math.hypot(g["x"] - p["x"], g["y"] - p["y"]) < DEDUPE_M for p in last)]

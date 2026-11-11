@@ -48,6 +48,9 @@ class Club:
     # panel shows (`game/longguards.py`). None: no long-camera guards.
     far_hog_from_long: bool = False
     guards_from_long_m: float | None = None
+    # How long after its far hog crossing a guard nothing saw arrive is read
+    # (`longguards.AFTER_FAR_S` where None).
+    guards_after_far_s: float | None = None
     one_game_per_stream: bool = False
     scheduled_ends: int | None = None
     panel_layout: PanelLayout | None = None
