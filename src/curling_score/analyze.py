@@ -1337,6 +1337,7 @@ def analyze(url, root=None, shot_fps=SHOT_FPS, progress=log.info,
         calibration=calibration,
         games=out_games,
         window=(start_s, end_s),
+        stones=club.stone_display,
         # The side detector is folded in: it times every throwing-end hog
         # crossing, so it changes the timeline as surely as the overhead one.
         # Resolved here rather than passed, because nothing upstream chooses

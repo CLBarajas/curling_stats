@@ -3,7 +3,7 @@
  * on its side -- the one statistic that works on a game nobody has charted. */
 import { useEffect, useRef } from "react";
 import { clockText, endSummary, rockRows } from "../core/index.mjs";
-import { TIMINGBOX } from "../core/constants.mjs";
+import { STONE_NAME, TIMINGBOX } from "../core/constants.mjs";
 import { ThinkingChart } from "./Charts.jsx";
 
 // Rows are this tall (.wrow in style.css). The list keeps the current one in
@@ -96,8 +96,8 @@ export function Timing({ view, ui, series, think, here, actions }) {
       <div className="tchart">
         <ThinkingChart series={series} at={here} box={TIMINGBOX} shadeEnd={ui.ei} />
         <div className="wtotals">
-          <span><i className="wdot red" />{teams.red?.name || "red"} {clockText(series.red)}</span>
-          <span><i className="wdot yellow" />{teams.yellow?.name || "yellow"} {clockText(series.yellow)}</span>
+          <span><i className="wdot red" />{teams.red?.name || STONE_NAME.red.toLowerCase()} {clockText(series.red)}</span>
+          <span><i className="wdot yellow" />{teams.yellow?.name || STONE_NAME.yellow.toLowerCase()} {clockText(series.yellow)}</span>
         </div>
         <p className="wcaveat">
           Read from {think.measured} of {think.measured + think.unmeasured} rocks

@@ -20,6 +20,7 @@ import {
   shotClipName, shotClipsOffered, bundledClip, currentSite, siteName, siteReadOnly, houseImageCaption, houseImageName, endChoices, switchedEnds,
   chartSwapOff, endIdentity, restPassed,
 } from "../core/index.mjs";
+import { STONE_NAME } from "../core/constants.mjs";
 import { accountsOn, whoIsSignedIn } from "../runtime/auth.mjs";
 import { saveSwitchedEnds } from "../runtime/switched.mjs";
 import * as store from "../runtime/overridesStore.mjs";
@@ -647,10 +648,10 @@ export function App({ doc, config, cursor, reload }) {
           ) : null}
           <div className="tools">
             <button className={`swatchbtn red${ui.placeColor === "red" ? " on" : ""}`}
-                    id="pickRed" title="Place red (r)"
+                    id="pickRed" title={`Place ${STONE_NAME.red.toLowerCase()} (r)`}
                     onClick={() => dispatch({ type: "set", patch: { placeColor: "red" } })} />
             <button className={`swatchbtn yellow${ui.placeColor === "yellow" ? " on" : ""}`}
-                    id="pickYellow" title="Place yellow (y)"
+                    id="pickYellow" title={`Place ${STONE_NAME.yellow.toLowerCase()} (y)`}
                     onClick={() => dispatch({ type: "set", patch: { placeColor: "yellow" } })} />
             <button id="delStone" title="Delete selected stone (x)" hidden={config.readOnly}
                     disabled={ui.selStone === null}

@@ -4,6 +4,7 @@
  *
  * Plain ESM with no React and no DOM, so the Python suite can run it under
  * bare node -- see tests/test_viewer_js.py. */
+import { STONE_NAME } from "./constants.mjs";
 import { flagPlace } from "./flag.mjs";
 import { typedTeamNames } from "./report.mjs";
 
@@ -12,7 +13,7 @@ import { typedTeamNames } from "./report.mjs";
  * named has no first line -- "Red v Yellow" says nothing the stones do not. */
 export function houseImageCaption(view, ei, si) {
   const t = typedTeamNames(view.game);
-  const title = t.red || t.yellow ? `${t.red || "Red"} v ${t.yellow || "Yellow"}` : null;
+  const title = t.red || t.yellow ? `${t.red || STONE_NAME.red} v ${t.yellow || STONE_NAME.yellow}` : null;
   return { title, place: flagPlace(view, ei, si, view.format).text };
 }
 

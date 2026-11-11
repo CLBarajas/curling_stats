@@ -4,6 +4,7 @@ import {
   DRAG_MIN_M, PAINT, PHONE_QUERY, R, TABLET_QUERY,
   broomMark, clampX, clampY, ghostStones, houseViewBox, isBlank, onSheet, shouldCrop, stoneAt, trackPoints,
 } from "../core/index.mjs";
+import { stoneWord } from "../core/constants.mjs";
 import * as dragStore from "../runtime/dragStore.mjs";
 import { writeBodyState } from "../runtime/bodyState.mjs";
 
@@ -167,7 +168,7 @@ function StoneDiscs({ stones, thrown, selStone = null }) {
                 stroke={PAINT.accent} strokeWidth={0.035} strokeDasharray="0.07 0.05" />
       )}
       <title>
-        {`${st.color} — ${(st.distance_to_tee ?? 0).toFixed(2)} m from the tee`
+        {`${stoneWord(st.color)} — ${(st.distance_to_tee ?? 0).toFixed(2)} m from the tee`
          + `${st.in_house ? " (in the rings)" : ""}`
          + `${i === thrown ? " — this shot" : ""}`}
       </title>

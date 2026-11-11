@@ -6148,8 +6148,10 @@ class TestNamingTheTeams:
         """Both boxes read "Played with three"; a screen reader has to hear
         which team a box marks, or the wrong team's rocks get re-credited."""
         teams = self.src("frontend/viewer/Teams.jsx")
-        assert 'aria-label="Red team played with three"' in teams
-        assert 'aria-label="Yellow team played with three"' in teams
+        # By the name the club's stones have (constants.STONE_NAME): Rochester's
+        # "yellow" team throws blue.
+        assert 'aria-label={`${STONE_NAME.red} team played with three`}' in teams
+        assert 'aria-label={`${STONE_NAME.yellow} team played with three`}' in teams
 
     def test_the_menu_says_teams_and_the_dialog_offers_three(self):
         assert ">\n      Teams…\n" in self.src("frontend/viewer/App.jsx")

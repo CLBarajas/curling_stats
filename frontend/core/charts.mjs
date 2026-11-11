@@ -11,7 +11,7 @@
  * Hand-rolled rather than a charting library: this is two polylines and some
  * gridlines, and the page has to print.
  */
-import { CHARTBOX } from "./constants.mjs";
+import { CHARTBOX, STONE_NAME } from "./constants.mjs";
 import { clockText } from "./stats.mjs";
 
 /* A gridline every round minute or five, whichever keeps it under `most`
@@ -53,8 +53,8 @@ export function chartGeometry(series, at = null, BOX = CHARTBOX) {
   return {
     box: BOX,
     viewBox: `0 0 ${BOX.w} ${BOX.h}`,
-    aria: `Cumulative thinking time: red ${clockText(series.red)}, `
-        + `yellow ${clockText(series.yellow)}`,
+    aria: `Cumulative thinking time: ${STONE_NAME.red.toLowerCase()} ${clockText(series.red)}, `
+        + `${STONE_NAME.yellow.toLowerCase()} ${clockText(series.yellow)}`,
     grid: gridlines(top, y, [30, 60, 120, 300, 600, 900], 5, 1800),
     ...endScale(bounds, x, BOX),
     // Yellow first, so red draws over it where they coincide -- as before.

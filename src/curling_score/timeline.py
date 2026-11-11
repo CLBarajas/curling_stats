@@ -524,7 +524,8 @@ def format_check(games, fmt) -> dict:
 
 
 def build_document(video_id, url, sheet, duration_s, calibration, games,
-                   window=None, processing_version=None, fmt=None, check=None) -> dict:
+                   window=None, processing_version=None, fmt=None, check=None,
+                   stones=None) -> dict:
     """The whole analysis, ready to write to ``timeline.json``.
 
     ``window`` is the ``(start_s, end_s)`` of the stream that was analysed when
@@ -532,7 +533,10 @@ def build_document(video_id, url, sheet, duration_s, calibration, games,
     pipeline and model that produced this, so two documents for one video can
     be told apart. ``fmt`` is the :class:`format.GameFormat` the game was
     played under; a fours document writes no ``format`` block at all, and a
-    document without one reads as fours.
+    document without one reads as fours. ``stones`` is a club's
+    ``stone_display``: what the red and yellow classes are called and painted
+    there. Written only where a club has one; every key in the document stays
+    "red" and "yellow".
     """
     games = [dict(g) for g in games]
     for game in games:
@@ -565,6 +569,8 @@ def build_document(video_id, url, sheet, duration_s, calibration, games,
         "calibration": calibration,
         "games": games,
     }
+    if stones:
+        doc["stones"] = stones
     fmt = fmt or format_mod.FOURS
     if fmt is not format_mod.FOURS:
         # Written only when it says something: a four-player timeline stays

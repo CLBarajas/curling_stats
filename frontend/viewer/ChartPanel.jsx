@@ -6,6 +6,7 @@ import {
   unreadNote,
   endLineText, houseDeltaText, sheetButtonText, swapText, thinkText, throwerText, typeOf,
 } from "../core/index.mjs";
+import { stoneWord } from "../core/constants.mjs";
 import { signInNow } from "../runtime/auth.mjs";
 import { ClockKey, ThinkingBars, ThinkingChart } from "./Charts.jsx";
 import { Sheet } from "./Sheet.jsx";
@@ -193,7 +194,7 @@ function MoveBefore({ shot, others, readOnly, actions, title }) {
       <option value="">detected order</option>
       {others.map(x => (
         <option key={identity(x)} value={identity(x)}>
-          {`before #${x.number} (${x.color}${isBlank(x) ? ", blank" : ""})`}
+          {`before #${x.number} (${stoneWord(x.color)}${isBlank(x) ? ", blank" : ""})`}
         </option>
       ))}
     </select>
@@ -228,7 +229,7 @@ function Grading({ shot, shotKey, openGroup, readOnly, others, actions }) {
         <button id="orderRow" type="button" disabled={!shot || readOnly} hidden={readOnly}>
           <span className="lbl">Order</span>
           <span id="orderRowValue">
-            {before ? `before #${before.number} (${before.color})` : "detected order"}
+            {before ? `before #${before.number} (${stoneWord(before.color)})` : "detected order"}
           </span>
         </button>
         <button id="placeStones" type="button" hidden={readOnly}

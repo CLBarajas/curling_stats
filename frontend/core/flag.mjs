@@ -2,7 +2,7 @@
  *
  * Plain ESM with no React and no DOM, so the Python suite can run it under
  * bare node -- see tests/test_viewer_js.py. */
-import { NOTE_MAX, VIDEO_LEAD_IN_S } from "./constants.mjs";
+import { NOTE_MAX, VIDEO_LEAD_IN_S, stoneWord } from "./constants.mjs";
 import { FOURS, positionText } from "./format.mjs";
 import { shotVideoTime } from "./shots.mjs";
 import { cursor, endIdentity, identity } from "./timeline.mjs";
@@ -20,7 +20,7 @@ import { cursor, endIdentity, identity } from "./timeline.mjs";
 export function flagPlace(view, ei, si, fmt = FOURS) {
   const { end: e, shot, raw, key } = cursor(view, ei, si);
   const label = shot
-    ? [shot.color, positionText(shot.position, fmt)].filter(Boolean).join(", ") || null
+    ? [stoneWord(shot.color), positionText(shot.position, fmt)].filter(Boolean).join(", ") || null
     : null;
   const place = {
     game_index: view.game.index ?? null,

@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { LIVE_POLL_MS, acceptLiveDoc, accessMode, modeOf } from "../core/index.mjs";
+import { applyStones } from "../core/constants.mjs";
 import * as store from "../runtime/overridesStore.mjs";
 import { checkAccess } from "../runtime/access.mjs";
 import { chartAuth } from "../runtime/chartAuth.mjs";
@@ -77,6 +78,10 @@ function Live({ first, cursor, config }) {
 Promise.all([fetch("timeline.json").then(r => r.json()), loadOverrides(), loadAccess()])
   .then(([doc, ov, access]) => {
     const config = base.guarded ? accessMode(base, access) : base;
+    // A club whose stones are not red and yellow: the drawn stones and the
+    // stylesheet's two colours follow the timeline, before anything renders.
+    for (const [c, colour] of Object.entries(applyStones(doc.stones)))
+      if (doc.stones?.[c]) document.documentElement.style.setProperty(`--${c}`, colour);
     // A guarded chart this person may edit saves with their token, kept
     // fresh for the close-of-tab save (chartAuth); any other page sends none.
     const auth = base.guarded && !config.readOnly ? chartAuth() : null;

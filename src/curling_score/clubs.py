@@ -66,6 +66,11 @@ class Club:
     # CLUB, not by a channel id.
     overhead_model: str | None = None
     side_model: str | None = None
+    # What this club's stones really look like, where they are not red and
+    # yellow: class colour -> {"name", "color"}. The detector has two classes
+    # and everything downstream calls them red and yellow; this only changes
+    # what a page says and draws (`timeline.build_document`'s ``stones``).
+    stone_display: dict | None = None
 
 
 # The two houses are played toward from opposite directions, and Granite's

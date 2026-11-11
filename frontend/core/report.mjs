@@ -6,7 +6,7 @@
  * against a real game rather than eyeballed in one. See
  * docs/superpowers/specs/2026-10-01-game-report-and-entered-scores-design.md.
  */
-import { GROUPS, TYPE, TYPES } from "./constants.mjs";
+import { GROUPS, STONE_NAME, TYPE, TYPES } from "./constants.mjs";
 import { FOURS, positionText, shortOf } from "./format.mjs";
 import { isGraded } from "./shots.mjs";
 import { boardReadable } from "./wire.mjs";
@@ -44,7 +44,7 @@ export function endList(numbers) {
 
 /* Who played, or the colour they threw when nobody has said. */
 export function teamNames(game) {
-  return { red: game?.teams?.red?.name || "Red", yellow: game?.teams?.yellow?.name || "Yellow" };
+  return { red: game?.teams?.red?.name || STONE_NAME.red, yellow: game?.teams?.yellow?.name || STONE_NAME.yellow };
 }
 
 /* The names as somebody typed them, for a form to start from: "" where

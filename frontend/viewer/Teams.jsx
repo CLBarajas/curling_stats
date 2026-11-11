@@ -11,6 +11,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { accountsOn, signInNow, whoIsSignedIn } from "../runtime/auth.mjs";
 import { canNameTeams, fetchRole, fetchTeamNames, sendTeams } from "../runtime/teams.mjs";
+import { STONE_NAME } from "../core/constants.mjs";
 import { NameBox } from "./NameBox.jsx";
 
 export function TeamsDialog({ naming, onClose, onSaved }) {
@@ -158,20 +159,20 @@ function TeamsForm({ naming, onClose, onSaved }) {
       </div>
       {!naming.doubles && (
         <label className="tm-three">
-          <input type="checkbox" checked={short.has("red")} aria-label="Red team played with three"
+          <input type="checkbox" checked={short.has("red")} aria-label={`${STONE_NAME.red} team played with three`}
                  onChange={e => three("red", e.target.checked)} />
           Played with three
         </label>
       )}
       <div className="tm-team">
         <span className="dot yellow" aria-hidden="true" />
-        <label htmlFor={`${box}yellow`}>Yellow</label>
+        <label htmlFor={`${box}yellow`}>{STONE_NAME.yellow}</label>
         <NameBox id={`${box}yellow`} names={known} maxLength={60} value={yellow}
                  placeholder="Team name" onValue={setYellow} />
       </div>
       {!naming.doubles && (
         <label className="tm-three">
-          <input type="checkbox" checked={short.has("yellow")} aria-label="Yellow team played with three"
+          <input type="checkbox" checked={short.has("yellow")} aria-label={`${STONE_NAME.yellow} team played with three`}
                  onChange={e => three("yellow", e.target.checked)} />
           Played with three
         </label>

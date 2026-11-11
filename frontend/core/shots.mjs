@@ -1,5 +1,5 @@
 /* What a single shot is, and what the page says about it. */
-import { RELEASE_TO_ARRIVAL_S, TYPES } from "./constants.mjs";
+import { RELEASE_TO_ARRIVAL_S, TYPES, stoneWord } from "./constants.mjs";
 
 export const isBlank = s => s && (s.state_known === false || s.missing);
 export const typeOf = s => (s ? (s.shot_type || "unknown") : "unknown");
@@ -18,7 +18,7 @@ export const peekMode = s => (isBlank(s) ? "order" : "grade");
  * from the alternation around it and the charter has no other way to know. */
 export function renumberNotice(before, after) {
   if (!before || !after || before.number === after.number) return null;
-  const why = after.color_inferred ? `, ${after.color} by alternation` : "";
+  const why = after.color_inferred ? `, ${stoneWord(after.color)} by alternation` : "";
   return `End renumbered — this is now rock ${after.number}${why}`;
 }
 

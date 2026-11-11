@@ -14,6 +14,29 @@ export const PAINT = {
   warn: "#8a4f12", accent: "#16130c", thrown: "#ffffff",
 };
 
+/* What a team is called when nobody has named it: the colour of its stones.
+ * A club whose stones are not red and yellow says so in the timeline's
+ * `stones` block (Rochester's "yellow" is blue); the keys never change. */
+export const STONE_NAME = { red: "Red", yellow: "Yellow" };
+const STONE_DEFAULT = { red: { name: "Red", color: PAINT.red }, yellow: { name: "Yellow", color: PAINT.yellow } };
+
+/* A stone's colour as a word in running text: "blue" where the key is "yellow". */
+export const stoneWord = c => STONE_NAME[c]?.toLowerCase() ?? c;
+
+/* Take a timeline's `stones` block: PAINT and STONE_NAME follow it, and the
+ * colours come back for the page to hand to its stylesheet. No block, or a
+ * colour it leaves out, is red and yellow as ever. */
+export function applyStones(stones) {
+  const out = {};
+  for (const c of ["red", "yellow"]) {
+    const s = stones?.[c] || {};
+    STONE_NAME[c] = typeof s.name === "string" && s.name ? s.name : STONE_DEFAULT[c].name;
+    PAINT[c] = /^#[0-9a-fA-F]{6}$/.test(s.color || "") ? s.color : STONE_DEFAULT[c].color;
+    out[c] = PAINT[c];
+  }
+  return out;
+}
+
 /* Metres. The SVG user-space unit is a metre, which is why none of the
  * geometry below needs a scale factor. */
 export const R = {
