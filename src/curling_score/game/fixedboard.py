@@ -44,14 +44,23 @@ MIN_CONFIDENCE = 0.99
 # A numeral's ink on the strip, and a strip row: about a third numeral and the
 # rest navy. On Go_JOSxJPsQ the strip's rows are 0.29-0.41 ink and 0.42-0.56
 # dark; the red band above is under 0.06 ink, the pale one below over 0.85.
+# Sheet C's camera is closer and its numerals bolder: 0.45-0.52 ink.
 _INK_LEVEL = 170
 _STRIP_DARK_LEVEL = 110
 _STRIP_MIN_DARK = 0.30
-_STRIP_INK = (0.20, 0.50)
+_STRIP_INK = (0.20, 0.60)
 _STRIP_MIN_ROWS = 12
+# The widest gap between two digits of one numeral, in pixels, and how far a
+# numeral may sit off the even spacing, in slots.
+_DIGIT_GAP = 7
+_MAX_SLOT_OFF = 0.25
 # The card rows, in strip heights above the strip's top and below its bottom.
 _TOP_ROW = (1.10, 0.04)
 _BOTTOM_ROW = (0.25, 1.45)
+# How much of a card row may run off the picture, in strip heights, and be
+# read from what is left: sheet C's board camera frames the board's top edge
+# a row or two above the cards.
+_ROW_OFF_PICTURE = 0.15
 # A slot's window, in pitches either side of its centre.
 _HALF_WINDOW = 0.42
 # A window that is a card (black), and the least of it that must be one thing
@@ -68,7 +77,11 @@ class FixedBoard:
     ``rect`` is (x, y, w, h) in the full frame. ``strip_x`` is the part of its
     width the printed numerals occupy, as fractions -- past the word SCORE and
     short of the BLANK ENDS box. ``top`` and ``bottom`` are the teams whose
-    cards hang above and below the strip.
+    cards hang above and below the strip. ``card_v`` is the brightness under
+    which a pixel is a card's: a softer camera blurs the black tiles grey
+    (V 75-115 on sheet B, against the red band's 100 and up only at its edges).
+    ``top_row`` is where the top team's cards hang, in strip heights above the
+    strip's top (`_TOP_ROW`): on sheet C they hang over its top edge.
     """
 
     rect: tuple
@@ -76,6 +89,8 @@ class FixedBoard:
     strip_x: tuple = (0.125, 0.90)
     top: str = "red"
     bottom: str = "yellow"
+    card_v: int = _CARD_V
+    top_row: tuple = _TOP_ROW
 
 
 class Unreadable(Exception):
@@ -111,22 +126,33 @@ def strip_rows(gray, board: FixedBoard):
 def slot_centres(gray, board: FixedBoard, rows):
     """Each slot's centre column, from the strip's first numeral and its last.
 
-    The numerals are evenly spaced, so the first ("1") and the last (the two
-    glyphs of "18") give them all. A strip with a different number of glyphs
-    than 1-``slots`` prints has something in front of it.
+    The numerals are evenly spaced, so the first ("1") and the last ("18")
+    give them all. Glyphs are grouped into numerals by the gap between them:
+    a softer camera runs the two digits of "10" into one glyph (sheets B and
+    D), a sharp one keeps them apart by 5 px or less, and numerals stand
+    10 px or more apart. A strip with a different number of numerals than
+    1-``slots``, or numerals off the even spacing, has something in front of it.
     """
     y0, y1 = rows
     x0, x1 = (int(f * gray.shape[1]) for f in board.strip_x)
     cols = (gray[y0:y1, x0:x1] > _INK_LEVEL).sum(axis=0) >= 3
     runs = [(a + x0, b + x0) for a, b in _runs(cols) if b - a >= 2]
-    want = sum(len(str(n)) for n in range(1, board.slots + 1))
-    if len(runs) != want:
-        raise Unreadable(f"the strip shows {len(runs)} glyphs, not {want}")
-    first = (runs[0][0] + runs[0][1]) / 2
-    n_last = len(str(board.slots))
-    last = (runs[-n_last][0] + runs[-1][1]) / 2
+    numerals = []
+    for a, b in runs:
+        if numerals and a - numerals[-1][1] <= _DIGIT_GAP:
+            numerals[-1] = (numerals[-1][0], b)
+        else:
+            numerals.append((a, b))
+    if len(numerals) != board.slots:
+        raise Unreadable(f"the strip shows {len(numerals)} numerals, not {board.slots}")
+    centres = [(a + b) / 2 for a, b in numerals]
+    first, last = centres[0], centres[-1]
     pitch = (last - first) / (board.slots - 1)
-    return [first + i * pitch for i in range(board.slots)], pitch
+    xs = [first + i * pitch for i in range(board.slots)]
+    off = max(abs(c - x) for c, x in zip(centres, xs))
+    if off > _MAX_SLOT_OFF * pitch:
+        raise Unreadable(f"a numeral sits {off / pitch:.2f} of a slot off the strip's spacing")
+    return xs, pitch
 
 
 def _bare(hsv_window, row: str):
@@ -153,7 +179,7 @@ def read_image(image, board: FixedBoard, *, predict=None) -> sb.CardBoard:
     xs, pitch = slot_centres(gray, board, rows)
     height = rows[1] - rows[0]
     half = max(2, int(pitch * _HALF_WINDOW))
-    bands = {"top": (rows[0] - _TOP_ROW[0] * height, rows[0] - _TOP_ROW[1] * height),
+    bands = {"top": (rows[0] - board.top_row[0] * height, rows[0] - board.top_row[1] * height),
              "bottom": (rows[1] + _BOTTOM_ROW[0] * height, rows[1] + _BOTTOM_ROW[1] * height)}
     if predict is None:
         from curling_score.game import digits
@@ -162,13 +188,15 @@ def read_image(image, board: FixedBoard, *, predict=None) -> sb.CardBoard:
     out = {}
     for row, team in (("top", board.top), ("bottom", board.bottom)):
         y0, y1 = (int(round(v)) for v in bands[row])
-        if y0 < 0 or y1 > gray.shape[0]:
+        slack = _ROW_OFF_PICTURE * height
+        if y0 < -slack or y1 > gray.shape[0] + slack:
             raise Unreadable(f"the {row} row runs off the picture")
+        y0, y1 = max(0, y0), min(gray.shape[0], y1)
         cards = []
         for slot, x in enumerate(xs, 1):
             xa, xb = int(x) - half, int(x) + half
             window = hsv[y0:y1, xa:xb]
-            card = float((window[..., 2] < _CARD_V).mean())
+            card = float((window[..., 2] < board.card_v).mean())
             if card < _CARD_MIN:
                 if _bare(window, row) < _BARE_MIN:
                     raise Unreadable(f"something is in front of the {row} row at {slot}")

@@ -60,7 +60,7 @@ class TestItReadsTheCards:
 class TestItRefusesWhatItCannotSee:
     def test_someone_in_front_of_the_strip(self, image):
         image[60:226, 500:640] = (60, 70, 80)       # a grey jumper
-        with pytest.raises(fb.Unreadable, match="glyphs"):
+        with pytest.raises(fb.Unreadable, match="numerals"):
             fb.read_image(image, BOARD)
 
     def test_someone_in_front_of_a_card_row_only(self, image):
@@ -72,3 +72,48 @@ class TestItRefusesWhatItCannotSee:
         image[:] = (200, 200, 200)
         with pytest.raises(fb.Unreadable):
             fb.read_image(image, BOARD)
+
+
+# The other three sheets' boards, each the median of its board camera over
+# eight minutes at the end of a game (2026-11-09 and 10), read through the
+# sheet's own profile: their cameras frame the board differently (`datasets/rcc-sheets.md`).
+OTHER_SHEETS = Path(__file__).parent / "fixtures" / "fixedboard"
+
+
+def _read_sheet(name, profile):
+    from curling_score import clubs
+
+    return fb.read_image(cv2.imread(str(OTHER_SHEETS / name)), clubs.CLUBS[profile].board)
+
+
+class TestTheOtherSheets:
+    def test_sheet_b_a_soft_camera_whose_digits_run_together(self):
+        # Df66u7Sv84c (2026-11-10), eight ends posted.
+        got = _read_sheet("rochester_b_after_8.png", "rochester-b")
+        assert [(c.slot, c.end) for c in got.red] == [(1, 3), (2, 4), (4, 5), (5, 6)]
+        assert [(c.slot, c.end) for c in got.yellow][:3] == [(1, 1), (2, 2), (5, 7)]
+
+    def test_sheet_bs_blur_leaves_its_8_short_of_the_bar(self):
+        # The last card is there and in its slot, but its numeral reads 0.986:
+        # a card with no end, so the game's last end goes unread.
+        got = _read_sheet("rochester_b_after_8.png", "rochester-b")
+        last = got.yellow[-1]
+        assert last.slot == 6 and last.end is None and last.confidence > 0.9
+
+    def test_sheet_c_a_close_camera_and_cards_hung_over_the_strip(self):
+        # R-7qQORH0dQ
+        got = _read_sheet("rochester_c_after_5.png", "rochester-c")
+        assert [(c.slot, c.end) for c in got.red] == [(1, 1), (2, 2), (3, 4), (5, 5)]
+        assert [(c.slot, c.end) for c in got.yellow] == [(2, 3)]
+
+    def test_sheet_d_a_board_filling_the_picture(self):
+        # Vu6sd-fo0PE
+        got = _read_sheet("rochester_d_after_6.png", "rochester-d")
+        assert [(c.slot, c.end) for c in got.red] == [(1, 2), (2, 4), (5, 6)]
+        assert [(c.slot, c.end) for c in got.yellow] == [(3, 1), (4, 3), (6, 5)]
+
+    def test_sheet_as_strip_does_not_read_sheet_cs_board(self):
+        # 18 runs past sheet A's strip on C's board: the strip cut short there
+        # has seventeen and a bit numerals, and the read is refused.
+        with pytest.raises(fb.Unreadable):
+            fb.read_image(cv2.imread(str(OTHER_SHEETS / "rochester_c_after_5.png")), BOARD)

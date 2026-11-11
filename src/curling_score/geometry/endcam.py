@@ -37,6 +37,11 @@ MAX_RING_RESIDUAL_M = 0.05
 MAX_RING_RESIDUAL_LONG_M = 0.15
 _CL_MIN_ROWS = 60
 _CL_HALVES = (40, 12, 4)
+# A dark hog line is this much darker than the ice around it, in grey levels
+# (the median row of its search window less the darkest): Rochester's are
+# 68-85 on sheets A and B. Sheet C's right camera stops short of its hog line,
+# and the darkest row it has is a 14-level shading step in the ice.
+_DARK_HOG_MIN_DIP = 30.0
 
 
 @dataclass(frozen=True)
@@ -138,12 +143,30 @@ def dark_hog_row(view, below_row: int, search_rows: int = 200) -> float:
     if len(lum) < 3:
         raise SideViewError("no ice below the house to look for a hog line")
     i = int(np.argmin(lum))
+    dip = float(np.median(lum) - lum[i])
+    if dip < _DARK_HOG_MIN_DIP:
+        raise SideViewError(f"no dark hog line in view: the darkest row below the house is "
+                            f"{dip:.0f} grey levels under the ice")
     if 0 < i < len(lum) - 1:
         a, b, c = lum[i - 1], lum[i], lum[i + 1]
         den = a - 2 * b + c
         if den:
             i = i + 0.5 * (a - c) / den
     return below_row + float(i)
+
+
+def hide(plate, rects):
+    """The plate with ``rects`` -- the overhead insets a composite lays over
+    an end camera's corner -- painted the colour of the ice, so a ring in an
+    inset is never taken for the house the camera looks at (sheet C's left
+    camera sees its own house smaller than the inset's)."""
+    out = np.array(plate, copy=True)
+    h, w = out.shape[:2]
+    ice = np.median(out[h // 4:3 * h // 4, w // 4:3 * w // 4].reshape(-1, out.shape[2]), axis=0)
+    for x, y, rw, rh in rects:
+        # the inset's frame too: a few pixels of blue border around it
+        out[max(0, y - 8):y + rh + 8, max(0, x - 8):x + rw + 8] = ice
+    return out
 
 
 def _sideline_centre(lum, p, hog, rect, rows, name):

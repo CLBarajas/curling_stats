@@ -259,18 +259,52 @@ ROCHESTER = Club("rochester", (
     board=FixedBoard(rect=(322, 850, 1276, 226), top="red", bottom="yellow"))
 
 # Sheets B and D: the same composite, the two houses' paint the other way
-# round -- purple on the left, teal on the right (JA_qWEzaABk, Vu6sd-fo0PE;
-# channels UCeANiSRDAxfXybHkgQ0iY4w and UCBhd8WiPmssoGcoYVSGcXJQ).
+# round -- purple on the left, teal on the right (channels
+# UCeANiSRDAxfXybHkgQ0iY4w and UCBhd8WiPmssoGcoYVSGcXJQ). Measured on
+# Df66u7Sv84c (B, 2026-11-10) and Vu6sd-fo0PE (D, 2026-11-09), the end
+# cameras also on JA_qWEzaABk (B, 2026-11-09, a stream of an empty sheet);
+# `datasets/rcc-sheets.md` has the numbers.
+# The left camera's purple is held to V 100 and up: sheet B's left camera
+# looks down the dark strip between sheets B and A (H 114, S 29, V 85-100),
+# which the house's purple (V 120 and up) otherwise runs into as one blob.
+_RCC_PURPLE_END = ((112, 18, 100), (145, 140, 240))
 ROCHESTER_BD = replace(
     ROCHESTER, name="rochester-bd",
     panels=(("top", ROCHESTER.panels[1][1]), ("bottom", ROCHESTER.panels[0][1])),
-    end_cameras={"top": ("left", ROCHESTER.end_cameras["bottom"][1]),
+    end_cameras={"top": ("left", replace(ROCHESTER.end_cameras["bottom"][1], ring=(_RCC_PURPLE_END,))),
                  "bottom": ("right", ROCHESTER.end_cameras["top"][1])},
-    # Sheet A's rectangle: these sheets' board cameras are not measured yet.
+    # Each sheet's board camera frames its board differently: rochester-b and
+    # rochester-d say where. This profile is their common paint and cameras.
     board=None)
+# The board camera's rectangle is the composite's, the same on every sheet;
+# where the strip of numerals falls inside it is not. Sheet B's board sits
+# lower and further right, the BLANK ENDS box from 0.88 of the width, and its
+# camera is soft: the black cards blur to V 75-115, and an 8 read at 0.986,
+# short of the reader's 0.99.
+ROCHESTER_B = replace(ROCHESTER_BD, name="rochester-b", board=replace(
+    ROCHESTER.board, strip_x=(0.125, 0.875), card_v=100))
+# Sheet D's fills the width: the strip's "1" starts at 0.115, "18" ends at 0.865.
+ROCHESTER_D = replace(ROCHESTER_BD, name="rochester-d", board=replace(
+    ROCHESTER.board, strip_x=(0.105, 0.875)))
+# Sheet C (R-7qQORH0dQ, 2026-11-09): painted as A, but its left end camera
+# sees the teal bluer (H 100-101) than A's (H 95), so its band runs to H 106 --
+# short of the purple (112) and with the composite's frame blue (H 101-103)
+# kept out by its saturation (150+). The board's "18" ends at 0.92, past
+# sheet A's strip. Its right end camera stops short of its hog line: the
+# board camera's picture starts above it, so that fit fails ("no dark hog
+# line in view") and, as analyze stands, so do both end cameras' splits.
+ROCHESTER_C = replace(
+    ROCHESTER, name="rochester-c",
+    end_cameras={"top": ("left", replace(ROCHESTER.end_cameras["top"][1],
+                                         ring=(((70, 18, 60), (106, 140, 240)),))),
+                 "bottom": ROCHESTER.end_cameras["bottom"]},
+    # Its camera is bright: the cards read navy, V 105-125, the red band 150 and
+    # up. The top team's cards hang lower than on A, over the strip's top edge:
+    # cut off there, a 2 read at 0.55.
+    board=replace(ROCHESTER.board, strip_x=(0.125, 0.925), card_v=130, top_row=(1.10, -0.12)))
 
 CLUBS = {c.name: c for c in (GRANITE, CINCINNATI, SWIFT_CURRENT, ARDSLEY, MARTENSVILLE, DALLAS,
-                             ROCHESTER, ROCHESTER_BD)}
+                             ROCHESTER, ROCHESTER_BD, ROCHESTER_B, ROCHESTER_C, ROCHESTER_D)}
 
 
 def for_channel(channel_id) -> Club:
