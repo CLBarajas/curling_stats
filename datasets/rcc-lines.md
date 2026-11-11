@@ -157,6 +157,10 @@ what the whole game says when it is (`scripts/rcc-lines/stats.py`; 97 rocks with
 So either these throwers do slide half as wide again as the broom asks and the rock leaves the hand on a
 shallower line than the slide's, or something stretches the slide across the sheet that none of the checks
 above reaches. The cameras cannot say which: the release and the first 22 m of free travel are on neither.
+Chris looked at end 1 rock 16 in the viewer against the video (2026-11-11): the track is where the stone
+is. So on that rock the slide is real and the read is not stretched; one rock does not say why every thrower
+reads the same way in proportion.
+
 Until that is understood, a figure that extends the slide to the broom would tell a thrower who made the shot
 that he was a foot and a half wide. This is the first question for someone who curls there (below).
 
