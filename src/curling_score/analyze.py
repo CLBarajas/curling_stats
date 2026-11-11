@@ -584,12 +584,37 @@ class StageClock:
         return f"{parts} s (total {self._last - self.started:.1f} s)"
 
 
-def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score):
+def first_thrower_by_the_board(out_ends, board, fmt):
+    """Who throws the first rock of the end after ``out_ends``, by the wall
+    board, or None where it cannot say.
+
+    The team that scores throws first in the next end, so the hammer follows
+    from the first end's and the scores since (`rules.hammer_chain`). It needs
+    the first end's hammer seen for certain -- every rock of that end there --
+    and a board score for every end so far; a format that places stones reads
+    its hammer from the placement instead.
+    """
+    if board is None or not out_ends or fmt.placed_per_team:
+        return None
+    first = out_ends[0]
+    if not first.get("hammer") or first.get("shots_observed") != first.get("shots_expected"):
+        return None
+    hammer = first["hammer"]
+    for built in out_ends:
+        score = board.scores.per_end.get(built["number"])
+        if score is None:
+            return None
+        hammer = rules.next_hammer(hammer, score, fmt.blank_passes_hammer)
+    return rules.other_color(hammer)
+
+
+def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_color=None):
     """One end, from detection to the timeline's record of it.
 
     Returns ``(built, closed_s)``: the end's timeline dict, and when its last
     rock came to rest, which is where the next end's run-up begins. Nothing
-    else carries from one end to the next.
+    else carries from one end to the next, but ``first_color``: who the board
+    says throws this end's first rock (`first_thrower_by_the_board`).
     """
     rec = fp_record.active()
     if rec is not None:
@@ -759,7 +784,7 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score):
         fmt=fmt,
         before=placed.seed if placed is not None else (),
         base=placement.fill_base(placed, fmt),
-        joined_late=late)
+        joined_late=late, first_color=first_color)
     lead_missed = 0
     if late:
         while lead_missed < len(shots) and shots[lead_missed].missing:
@@ -1125,7 +1150,8 @@ def build_games(ctx: EndContext, games, *, read_board=None,
             built, prev_end_s = build_one_end(
                 ctx, game, end, run_up,
                 board_score=(None if board is None
-                             else board.scores.per_end.get(end.number)))
+                             else board.scores.per_end.get(end.number)),
+                first_color=first_thrower_by_the_board(out_ends, board, ctx.fmt))
             done_ends += 1
             if (not out_ends and k + 1 < len(game.ends)
                     and leaves_off_head(game, end, run_up, ctx.recording_start_s)

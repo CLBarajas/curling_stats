@@ -93,6 +93,7 @@ class Unseen:
     * ``house`` -- the sheet held more stones than rocks seen so far;
     * ``lead`` -- the recording began inside the end (`_lead_blanks`);
     * ``gap`` -- a long pause between two rocks (`GAP_FACTOR`), the one guess;
+    * ``hammer`` -- the wall board's hammer says the other team threw first;
     * ``tail`` -- whatever the end is still short, after its last rock seen.
 
     The first three are evidence a rock was thrown. A gap and a tail are only
@@ -412,7 +413,7 @@ MAX_FILL = 4
 
 
 def _fill_short_end(seq, per_end: int, max_fill: int = MAX_FILL,
-                    house_sizes=None, base: int = 0):
+                    house_sizes=None, base: int = 0, first_color=None):
     """Mark the deliveries an end is missing, and where they went.
 
     ``fit_end`` enforces strict alternation by dropping candidates, so by the
@@ -442,6 +443,15 @@ def _fill_short_end(seq, per_end: int, max_fill: int = MAX_FILL,
     the wrong throwers for every shot in between.
     ``base`` counts stones that were on the sheet before any rock was thrown,
     which doubles places there.
+
+    ``first_color`` is who threw the end's first rock, where something other
+    than this end's own rocks says so: the wall board's hammer, carried down
+    from the end before (`analyze.first_thrower_by_the_board`). An end whose
+    first rock seen is the other team's is missing an odd number before it,
+    and one of its blanks goes there rather than on the tail. A house-only
+    overhead leaves `house_sizes` nothing to say about a first rock thrown as
+    a guard: Rochester's Go_JOSxJPsQ end 5 lost its opening red that way, was
+    numbered from the blue after it, and read the hammer the wrong way round.
     """
     short = per_end - len(seq)
     if not 0 < short <= max_fill:
@@ -474,6 +484,10 @@ def _fill_short_end(seq, per_end: int, max_fill: int = MAX_FILL,
                     short -= 2 * pairs
                     p += 2 * pairs
             p += 1
+
+    if first_color and short >= 1 and seq and seq[0][0] != first_color:
+        seq.insert(0, (first_color, Unseen("hammer")))
+        short -= 1
 
     real = [(i, dv) for i, (_c, dv) in enumerate(seq) if not unseen(dv)]
     if short >= 2 and len(real) >= 3:
@@ -538,7 +552,7 @@ def _with_placeholders(deliveries):
 
 def from_deliveries(deliveries, frames, settle_window_s: float = SETTLE_WINDOW_S,
                     thrown_by=None, fmt=None, before=(), base: int = 0,
-                    joined_late: bool = False, house_frames=None):
+                    joined_late: bool = False, house_frames=None, first_color=None):
     """Build the shot list from observed deliveries.
 
     Not inferred from how the house changed between settled states, which
@@ -606,7 +620,7 @@ def from_deliveries(deliveries, frames, settle_window_s: float = SETTLE_WINDOW_S
     else:
         plan = _fill_short_end(_with_placeholders(deliveries), per_end,
                                house_sizes=[len(houses[i]) for i in range(len(deliveries))],
-                               base=base)
+                               base=base, first_color=first_color)
     for color, dv in plan:
         if len(out) >= per_end:
             break
