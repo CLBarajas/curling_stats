@@ -53,6 +53,10 @@ def _score_label(score, board):
 
 
 def _analyze(args) -> int:
+    from curling_score.detect import device as device_mod
+
+    # --device is for every detector, not the overhead one alone.
+    device_mod.use(args.device)
     club = clubs.CLUBS[args.club]
     weights = args.weights if args.weights is not None else _default_weights(club)
     doc = analyze_mod.analyze(args.url, root=args.cache_root, shot_fps=args.fps,
@@ -746,7 +750,9 @@ def main(argv=None) -> int:
                    help=f"a trained YOLO model to detect with (default: the "
                         f"club's own model, else {_default_weights() or 'classical'})")
     p.add_argument("--imgsz", type=int, default=448)
-    p.add_argument("--device", default=None)
+    p.add_argument("--device", default=None,
+                   help="where the detectors run, e.g. mps for an Apple GPU "
+                        "(default: $CURLING_SCORE_DEVICE, else a CUDA card, else the CPU)")
     p.add_argument("--start", type=float, default=None,
                    help="analyse from this many seconds into the stream")
     p.add_argument("--end", type=float, default=None,

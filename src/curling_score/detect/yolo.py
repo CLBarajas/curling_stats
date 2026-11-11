@@ -14,6 +14,7 @@ everything downstream is unchanged.
 
 from functools import lru_cache
 
+from curling_score.detect import device as device_mod
 from curling_score.detect.rocks import Detection, enforce_separation
 from curling_score.geometry import constants as C
 
@@ -106,7 +107,9 @@ class YoloDetector:
 
         self.model = YOLO(str(weights))
         self.conf = conf
-        self.device = device
+        # The caller's device, else the one named for every detector
+        # (`device.ENV_VAR`), else ultralytics' own choice.
+        self.device = device_mod.chosen(device)
         self.imgsz = imgsz
 
     def twin(self):

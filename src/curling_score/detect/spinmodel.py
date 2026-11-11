@@ -12,6 +12,7 @@ import functools
 
 import numpy as np
 
+from curling_score.detect import device as device_mod
 from curling_score.detect import longview
 
 IMGSZ = 224
@@ -41,7 +42,8 @@ def handle_points(model, patches, imgsz: int = IMGSZ):
     out = []
     for i in range(0, len(patches), BATCH):
         batch = [longview.to_bgr(p) for p in patches[i:i + BATCH]]
-        for r in model.predict(batch, imgsz=imgsz, conf=CONF, verbose=False):
+        for r in model.predict(batch, imgsz=imgsz, conf=CONF, verbose=False,
+                               **device_mod.kwargs()):
             if r.keypoints is None or len(r.boxes) == 0:
                 out.append(None)
                 continue

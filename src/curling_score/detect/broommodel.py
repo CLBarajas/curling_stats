@@ -14,6 +14,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from curling_score.detect import device as device_mod
 from curling_score.detect import longview
 from curling_score.geometry import constants as C
 
@@ -62,7 +63,7 @@ def find(model, frames, view, conf: float = CONF_MIN) -> list[list[Pad]]:
     out = []
     for i in range(0, len(crops), BATCH):
         for res in model.predict(crops[i:i + BATCH], imgsz=800, conf=conf,
-                                 verbose=False):
+                                 verbose=False, **device_mod.kwargs()):
             pads = []
             if res.boxes is not None:
                 for b, cf in zip(res.boxes.xyxy.cpu().numpy(),

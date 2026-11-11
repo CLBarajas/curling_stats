@@ -19,6 +19,7 @@ import functools
 
 import numpy as np
 
+from curling_score.detect import device as device_mod
 from curling_score.detect import longview
 from curling_score.fpframes import record as fp_record
 from curling_score.geometry.sideview import band_crop
@@ -86,7 +87,7 @@ def propose(model, frames, view, color: str, times, *, conf=CONF_MIN):
     preds = []
     for i in range(0, len(crops), BATCH):
         preds.extend(model.predict(crops[i:i + BATCH], imgsz=800, conf=conf,
-                                   verbose=False))
+                                   verbose=False, **device_mod.kwargs()))
     for t, res in zip(times, preds):
         if res.boxes is None:
             continue
@@ -209,7 +210,8 @@ def detect_bands(model, frames, times, lo, hi, colors, *, imgsz=800, conf=CONF_M
         crops.append(longview.to_bgr(arr[lo:min(arr.shape[0], int(hi))]))
     out = [[] for _ in colors]
     for i in range(0, len(crops), BATCH):
-        for res in model.predict(crops[i:i + BATCH], imgsz=imgsz, conf=conf, verbose=False):
+        for res in model.predict(crops[i:i + BATCH], imgsz=imgsz, conf=conf, verbose=False,
+                                 **device_mod.kwargs()):
             boxes = [[] for _ in colors]
             if res.boxes is not None:
                 for b, c, cf in zip(res.boxes.xyxy.cpu().numpy(), res.boxes.cls.cpu().numpy(),
@@ -233,7 +235,8 @@ def detect_boxes(model, frames, times, lo, hi, color, *, imgsz=800, conf=CONF_MI
              for f in frames]
     out = []
     for i in range(0, len(crops), BATCH):
-        for res in model.predict(crops[i:i + BATCH], imgsz=imgsz, conf=conf, verbose=False):
+        for res in model.predict(crops[i:i + BATCH], imgsz=imgsz, conf=conf, verbose=False,
+                                 **device_mod.kwargs()):
             got = []
             if res.boxes is not None:
                 for b, c, cf in zip(res.boxes.xyxy.cpu().numpy(), res.boxes.cls.cpu().numpy(),

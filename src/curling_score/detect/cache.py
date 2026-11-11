@@ -94,7 +94,7 @@ def _detector_identity(detector) -> list:
     if detector is None:
         return ["classical"]
     weights = getattr(getattr(detector, "model", None), "ckpt_path", None)
-    return [
+    identity = [
         type(detector).__name__,
         _weights_identity(weights) if weights else None,
         getattr(detector, "conf", None),
@@ -102,6 +102,13 @@ def _detector_identity(detector) -> list:
         bool(getattr(detector, "model", None)
              and detector.model.overrides.get("half")),
     ]
+    # A device somebody named (`detect.device`): an Apple GPU's boxes are not
+    # quite a CPU's, so they are not served to each other. Left out when none
+    # was named, so every key made before this is the key still.
+    device = getattr(detector, "device", None)
+    if device is not None:
+        identity.append(f"device={device}")
+    return identity
 
 
 def key(video_path, rect, calib, detector, start_s, end_s, step_s,

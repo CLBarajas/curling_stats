@@ -167,3 +167,25 @@ class TestWeightsAreKnownByContent:
         a, b = tmp_path / "a.pt", tmp_path / "b.pt"
         a.write_bytes(b"one"); b.write_bytes(b"two")
         assert cache._weights_identity(a)[2] != cache._weights_identity(b)[2]
+
+
+class TestANamedDevice:
+    """A device somebody named is part of the key; none named changes nothing."""
+
+    class _Det:
+        model = None
+        conf, imgsz = 0.3, 448
+
+    def test_no_device_keeps_the_identity_it_always_had(self):
+        from curling_score.detect import cache
+
+        det = self._Det()
+        det.device = None
+        assert cache._detector_identity(det) == ["_Det", None, 0.3, 448, False]
+
+    def test_a_named_device_gets_its_own_key(self):
+        from curling_score.detect import cache
+
+        det = self._Det()
+        det.device = "mps"
+        assert cache._detector_identity(det)[-1] == "device=mps"
