@@ -158,8 +158,11 @@ So either these throwers do slide half as wide again as the broom asks and the r
 shallower line than the slide's, or something stretches the slide across the sheet that none of the checks
 above reaches. The cameras cannot say which: the release and the first 22 m of free travel are on neither.
 Chris looked at end 1 rock 16 in the viewer against the video (2026-11-11): the track is where the stone
-is. So on that rock the slide is real and the read is not stretched; one rock does not say why every thrower
-reads the same way in proportion.
+is, and the same on rocks 9 and 14. So the slide is real and the read is not stretched. His reading of the
+pattern: the skips may be holding the broom narrow, expecting the thrower to come out wide. That fits what is
+measured -- a broom set from where rocks have ended up would drift narrow if everyone slides outside it, and a
+takeout thrown 25 cm outside the broom line would be back on it at the far hog line after 20-25 cm of curl --
+but it is not shown: the release and the first 22 m of travel are on no camera.
 
 Until that is understood, a figure that extends the slide to the broom would tell a thrower who made the shot
 that he was a foot and a half wide. This is the first question for someone who curls there (below).
@@ -218,3 +221,5 @@ that he was a foot and a half wide. This is the first question for someone who c
    stream, that sees the ice between the hog lines?
 6. **Whether to ask Will** for "At the hog line" on a line with no final line, and whether late spin from the
    far end is worth building.
+7. **For the viewer, from Chris (not done):** the delivery track in "The line" is drawn one colour whoever
+   threw; it should be the rock's colour (red or the club's blue, `stones` in the timeline).
