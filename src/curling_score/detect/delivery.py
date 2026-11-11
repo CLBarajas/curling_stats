@@ -54,6 +54,21 @@ MIN_CONFIRM_S = 4.0
 # panel at y >= 3.4 m; a stone picked up mid-house is one that was struck, and
 # its flight out the back otherwise looks exactly like a shot.
 MIN_ENTRY_Y_M = 2.5
+# That gate was set on panels that see up-sheet to about +4.6 m. A panel that
+# shows the house only (Rochester's reach +1.97 m) has no stone above 2.5 m to
+# see, so nothing passed the gate there and every delivery came in by the
+# late-entry route. On such a panel the gate sits this far inside the top
+# edge: a stone is a handle's width into the picture before it is boxed, and
+# a sweeper can hide it a little longer.
+ENTRY_EDGE_MARGIN_M = 0.6
+
+
+def entry_gate_m(view_y_max_m: float | None) -> float:
+    """Where a delivery has to be first seen at or above, on a panel that sees
+    up-sheet as far as ``view_y_max_m``; `MIN_ENTRY_Y_M` wherever it fits."""
+    if view_y_max_m is None:
+        return MIN_ENTRY_Y_M
+    return min(MIN_ENTRY_Y_M, view_y_max_m - ENTRY_EDGE_MARGIN_M)
 # The stone must actually run down-sheet, not drift about.
 MIN_NET_TRAVEL_FRACTION = 0.7
 # And it must run down-sheet more than across it. A stone is thrown along a
@@ -865,7 +880,7 @@ def _appeared_without_replacing(frames, track) -> bool:
     return now > was
 
 
-def _arrived_at_rest(frames, track, at_i: int = 0):
+def _arrived_at_rest(frames, track, at_i: int = 0, entry_y_m: float = MIN_ENTRY_Y_M):
     """A delivery whose flight was all but over before it came into view.
 
     Returns where it rests, or None.
@@ -888,7 +903,7 @@ def _arrived_at_rest(frames, track, at_i: int = 0):
     it is the same evidence a stone pushed back between ends would offer, minus
     the flight that would settle the question.
     """
-    if track.ys[0] < MIN_ENTRY_Y_M:
+    if track.ys[0] < entry_y_m:
         return None  # a stone cannot arrive from anywhere but up-sheet
     return _arrival_rest(frames, track, at_i)
 
@@ -990,12 +1005,15 @@ def _left_the_view(track, end_i, x_limit_m: float,
 
 def find_deliveries(frames, min_travel_m: float = MIN_TRAVEL_M,
                     view_x_limit_m: float | None = None,
-                    view_y_min_m: float | None = None) -> list[Delivery]:
+                    view_y_min_m: float | None = None,
+                    view_y_max_m: float | None = None) -> list[Delivery]:
     """Find every thrown stone in a dense sequence of detections.
 
     ``view_x_limit_m`` and ``view_y_min_m`` say where the camera's view ends,
     so a stone that ran out of the picture can be told from one that vanished
     in play. Absent, the view is taken to end at the side and back lines.
+    ``view_y_max_m`` is how far up-sheet the view reaches, which sets where a
+    delivery has to be first seen (`entry_gate_m`).
     """
     frames = [(t, list(d)) for t, d in frames]
     if not frames:
@@ -1003,6 +1021,7 @@ def find_deliveries(frames, min_travel_m: float = MIN_TRAVEL_M,
     rec = fp_record.active()
     x_limit = min(C.SIDELINE_ABS_X_M, view_x_limit_m or C.SIDELINE_ABS_X_M)
     y_min = C.THROUGH_BACK_Y_M if view_y_min_m is None else view_y_min_m
+    entry_y = entry_gate_m(view_y_max_m)
 
     out: list[Delivery] = []
     claimed: list[tuple] = []
@@ -1010,7 +1029,7 @@ def find_deliveries(frames, min_travel_m: float = MIN_TRAVEL_M,
         if len(track.ts) < 4:
             continue
         late_entry = False
-        if track.ys[0] < MIN_ENTRY_Y_M:
+        if track.ys[0] < entry_y:
             # Normally this is a stone that was struck, not thrown. But the
             # model finds red much further down the sheet than yellow -- in
             # game 1 end 3 a red takeout was first seen at y = +1.69, below
@@ -1031,7 +1050,7 @@ def find_deliveries(frames, min_travel_m: float = MIN_TRAVEL_M,
             # judge. Usually that means it was already in play -- but a guard
             # thrown short comes to rest just inside the panel and looks
             # exactly the same, so ask whether the sheet gained a stone.
-            rest = _arrived_at_rest(frames, track)
+            rest = _arrived_at_rest(frames, track, entry_y_m=entry_y)
             if rest is not None:
                 j = _settled_index(track)
                 out.append(
@@ -1063,7 +1082,7 @@ def find_deliveries(frames, min_travel_m: float = MIN_TRAVEL_M,
             # Too little movement to judge as a flight -- but a guard that was
             # already almost stopped when it came into view moves about this
             # much, so ask the sheet whether it gained a stone before giving up.
-            rest = _arrived_at_rest(frames, track, end_i) if at_rest else None
+            rest = _arrived_at_rest(frames, track, end_i, entry_y) if at_rest else None
             if rest is not None:
                 j = _settled_index(track, end_i)
                 out.append(

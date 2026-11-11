@@ -81,6 +81,15 @@ class PanelSetup:
         corners = ((0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1))
         return min(self.calib.to_sheet(px, py)[1] for px, py in corners)
 
+    @property
+    def view_y_max_m(self) -> float:
+        """How far in front of the tee, up-sheet, this panel can see: about
+        +4.6 m on Granite's, +1.97 m where the overhead shows the house only.
+        A delivery is first seen near this edge (`delivery.entry_gate_m`)."""
+        _x, _y, w, h = self.rect
+        corners = ((0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1))
+        return max(self.calib.to_sheet(px, py)[1] for px, py in corners)
+
 
 # Which way stones enter each of Granite's panels: the two houses are played
 # toward from opposite directions.

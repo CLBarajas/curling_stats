@@ -1440,3 +1440,18 @@ class TestAHiddenGuardSeenAgainIsNotAnArrival:
     def test_a_stone_on_a_spot_nothing_held_still_arrives(self):
         got = delivery.find_deliveries(self._frames(guard_before=False))
         assert [(round(d.t_enter, 1), d.color) for d in got if abs(d.t_enter - 62.5) < 1.0] == [(62.5, "yellow")]
+
+
+class TestEntryGate:
+    """Where a delivery has to be first seen depends on how far up-sheet the
+    panel can see at all."""
+
+    def test_a_panel_that_sees_past_the_gate_keeps_it(self):
+        assert delivery.entry_gate_m(4.6) == delivery.MIN_ENTRY_Y_M
+        assert delivery.entry_gate_m(None) == delivery.MIN_ENTRY_Y_M
+
+    def test_a_house_only_panel_puts_it_inside_its_own_top_edge(self):
+        # Rochester's overheads reach +1.97 m: nothing there is ever at 2.5 m.
+        gate = delivery.entry_gate_m(1.97)
+        assert gate == pytest.approx(1.97 - delivery.ENTRY_EDGE_MARGIN_M)
+        assert 0.0 < gate < 1.97

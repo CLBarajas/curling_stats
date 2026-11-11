@@ -628,6 +628,7 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score):
         d for d in delivery.find_deliveries(
             seq, view_x_limit_m=setup.view_x_limit_m,
             view_y_min_m=setup.view_y_min_m,
+            view_y_max_m=setup.view_y_max_m,
         )
         if d.t_enter >= from_s
     ]
@@ -646,7 +647,7 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score):
         deliveries, gap_from, end.end_s,
         per_end=fmt.delivered_per_end, per_team=fmt.delivered_per_team)
     recovered, recovered_early = placement.exclude(
-        secondpass.search(seq, gaps, deliveries), placed)
+        secondpass.search(seq, gaps, deliveries, view_y_max_m=setup.view_y_max_m), placed)
     if recovered:
         deliveries = sorted(
             deliveries + recovered, key=lambda d: d.t_enter

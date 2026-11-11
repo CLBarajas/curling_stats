@@ -73,7 +73,8 @@ def gaps_to_search(found, start_s, end_s, per_end: int = C.STONES_PER_END,
     return [g for g in out if g.duration_s > 0]
 
 
-def search(frames, gaps, known=(), min_travel_m: float = GAP_MIN_TRAVEL_M):
+def search(frames, gaps, known=(), min_travel_m: float = GAP_MIN_TRAVEL_M,
+           view_y_max_m: float | None = None):
     """Look inside each gap for the one delivery it is known to hold."""
     from curling_score.detect import delivery as D
 
@@ -104,7 +105,9 @@ def search(frames, gaps, known=(), min_travel_m: float = GAP_MIN_TRAVEL_M):
                 continue
             if gap.expected_color and track.color != gap.expected_color:
                 continue
-            if track.ys[0] < GAP_MIN_ENTRY_Y_M:
+            # On a panel that shows the house only, the first pass's own gate
+            # is already below this one (`delivery.entry_gate_m`).
+            if track.ys[0] < min(GAP_MIN_ENTRY_Y_M, D.entry_gate_m(view_y_max_m)):
                 continue
             # A gap is padded so a delivery sitting just outside its edge is
             # still reachable, and that padding can reach over a delivery the
