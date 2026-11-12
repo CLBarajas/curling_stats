@@ -461,7 +461,8 @@ class TestScanPoints:
 class TestAnalyzeSearchesAShortEnd:
     def test_it_searches_before_the_audit_and_the_shot_list_on_the_thrower_s_camera(self):
         """The rock it finds has to be a candidate when the rules fit the end,
-        and only an end the rules left short is searched."""
+        and only an end the rules left short is searched -- up to half an end
+        short, past what the filler will pad."""
         from pathlib import Path
         src = (Path(__file__).resolve().parents[1] / "src/curling_score/analyze.py").read_text()
         i_pair = src.index("release.find_and_pair(")
@@ -470,6 +471,6 @@ class TestAnalyzeSearchesAShortEnd:
         i_shots = src.index("shots_mod.from_deliveries(")
         assert i_pair < i_lost < i_audit < i_shots
         guard = src[:i_lost][-200:]
-        assert "0 < short <= shots_mod.MAX_FILL" in guard
+        assert "0 < short <= LOST_SEARCH_MAX" in guard
         call = src[i_lost:][:200]
         assert "throw_view" in call and "throw_view = (sideviews.get(hogtime.CAMERA_FOR[OTHER_HOUSE[end.house]])" in src

@@ -65,6 +65,11 @@ OTHER_HOUSE = {"top": "bottom", "bottom": "top"}
 STRIP_AGREES_M = 0.03
 
 
+# At most this many rocks short and an end is still searched for lost rocks
+# on the throwing camera; half an end, so a stretch with no game in it is not.
+LOST_SEARCH_MAX = 8
+
+
 def _with_lateral(plate, view, name, progress):
     """``view`` with its across-the-sheet calibration, or unchanged if neither
     the ring's sides nor the 4 ft strip down the sheet could be read -- which
@@ -768,7 +773,11 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
     # long camera facing the thrower still sees it slide out of the hack.
     lost = []
     short = fmt.delivered_per_end - len(kept)
-    if throw_view is not None and 0 < short <= shots_mod.MAX_FILL:
+    # Not `shots.MAX_FILL`: that caps the filler, which invents blanks. This
+    # search adds only slides the camera saw, and an end too short to fill is
+    # where it is needed most (Rochester sheet C end 6: 7 short, five guards
+    # short of a house-only overhead, all on the throwing camera).
+    if throw_view is not None and 0 < short <= LOST_SEARCH_MAX:
         stages.mark("rules")
         lost = sidereleases.lost_rocks(
             path, throw_view,
