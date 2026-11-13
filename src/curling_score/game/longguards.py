@@ -91,6 +91,11 @@ def add(end: dict, view, read_stones, from_m: float, after_far_s: float = AFTER_
                 if shot.get("shot_type") in NAMEABLE and shot.get("t_far_s") is not None:
                     shot["shot_type"] = "guard"
         stones.extend(extra)
+        # An empty overhead reading of a rock that came to rest marks its house
+        # unread (`shots.from_deliveries`): the stone has to be somewhere. Found
+        # here, it is somewhere, and the viewer can chart the rock.
+        if shot.get("state_known") is False and shot.get("delivered_stone_index") is not None:
+            shot["state_known"] = True
         n += len(extra)
         last = extra
     if last and end.get("final_stones") is not None:

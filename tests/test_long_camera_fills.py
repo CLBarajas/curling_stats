@@ -170,6 +170,23 @@ def test_the_long_camera_follows_lost_rocks_only_where_the_overhead_misses_guard
     assert not follows_lost(None, 3.3)
 
 
+def test_a_guard_found_here_makes_its_rock_s_house_known():
+    """Rochester sheet A end 4, rock 1: a red guard short of the house-only
+    overhead, which read the house empty and so marked it unread; the long
+    camera placed it, so the viewer can chart it."""
+    end = {"house": "top", "shots": [
+        {"number": 1, "color": "red", "t_rest_s": 10.0, "stones": [],
+         "delivered_stone_index": None, "state_known": False},
+        {"number": 2, "color": "yellow", "t_rest_s": 40.0, "stones": [],
+         "delivered_stone_index": None, "state_known": False}],
+        "final_stones": []}
+    guard = edge_of(0.1, 3.65)
+    longguards.add(end, VIEW, lambda t: [(*guard, "red")] if t < 30 else [], from_m=1.7)
+    s1, s2 = end["shots"]
+    assert s1["delivered_stone_index"] == 0 and s1["state_known"] is True
+    assert s2["state_known"] is False          # nothing found for it: still unread
+
+
 def test_a_rock_with_no_arrival_is_read_once_it_has_stopped_and_named_a_guard():
     """A release the far house never saw arrive "rests" 6 s after it -- still
     sliding mid-sheet -- so its guard was never found at that read. Timed
