@@ -393,6 +393,20 @@ class TestLostRocks:
         arrivals, thrown_by = seen_end()
         assert lost(arrivals, thrown_by, Scan([("red", 5150.0)]), t0=5000.0) == []
 
+    def test_a_slide_that_pairs_with_an_arrival_vouches_for_it(self):
+        """Rochester sheet A end 4's hammer: a clean slide on the throwing
+        camera, then a guard that rested a moment before a sweeper moved it.
+        The slide adds no rock -- its arrival is already a candidate -- but
+        says that arrival was thrown, so the clearing rule must keep it."""
+        kept, thrown_by = seen_end()
+        target = arrival("yellow", kept[-1].t_enter + 55.0)    # the hammer, no release
+        vouched = set()
+        got = S.lost_rocks("v.mp4", view(), kept=kept, releases=list(thrown_by),
+                           thrown_by=thrown_by, arrivals=kept + [target], house_frames=(),
+                           t0=5297.0, t1=6455.0, vouched=vouched,
+                           scan=Scan([(target.color, target.t_enter - 17.65)]))
+        assert got == [] and vouched == {id(target)}
+
     def test_stones_at_rest_in_the_throwing_house_are_not_a_slide(self):
         """vztdzCNM2fk (Rochester sheet C) end 2's run-up: three yellows parked
         2.4 m apart down the sheet, which a line at 1.2 m/s crosses one after

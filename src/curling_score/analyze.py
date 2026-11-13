@@ -760,11 +760,12 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
         # Stones moved while the house is cleared after the last shot
         # look like deliveries in every way but one: nothing released them.
         return cands, fit.fit_end(fit.drop_clearing(
-            cands, seq, fit.released_ids(thrown_by, unaccounted),
+            cands, seq, fit.released_ids(thrown_by, unaccounted) | vouched,
             per_end=fmt.delivered_per_end),
             paired=fit.paired_ids(thrown_by, taken_back),
             per_end=fmt.delivered_per_end, per_team=fmt.delivered_per_team)
 
+    vouched = set()     # arrivals the long camera's search saw thrown
     deliveries, kept = by_the_rules(unaccounted)
     # A rock seen at neither end: a hogged rock whose thrower also hid its
     # release from above leaves this end one short and nothing to say where,
@@ -782,7 +783,7 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
         lost = sidereleases.lost_rocks(
             path, throw_view,
             kept=kept, releases=releases, thrown_by=thrown_by, arrivals=arrivals,
-            house_frames=seq, t0=since, t1=end.end_s)
+            house_frames=seq, t0=since, t1=end.end_s, vouched=vouched)
         stages.mark("lost")
         if lost:
             progress(f"    end {end.number}: {len(lost)} rock(s) the overhead saw at "
@@ -797,6 +798,11 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
                     progress(f"    end {end.number}: {n_placed} of them placed from the camera "
                              f"facing the house")
             unaccounted = unaccounted + lost
+            deliveries, kept = by_the_rules(unaccounted)
+        elif vouched:
+            # Only arrivals the rules had already: the search saw them thrown.
+            progress(f"    end {end.number}: {len(vouched)} arrival(s) the long camera "
+                     f"saw thrown")
             deliveries, kept = by_the_rules(unaccounted)
     # Audit what detection actually offered, before the rules trim
     # it -- that is the honest measure of how well detection did.

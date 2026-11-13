@@ -428,7 +428,7 @@ def rock_times(kept, thrown_by, lags=()) -> list[tuple[float, str]]:
 
 
 def lost_rocks(video, view, *, kept, releases, thrown_by, arrivals, house_frames,
-               t0, t1, scan=None) -> list:
+               t0, t1, scan=None, vouched=None) -> list:
     """The rocks an end the rules left short lost at both ends of the sheet, as
     deliveries ``fit.fit_end`` can place; [] when there are none.
 
@@ -444,6 +444,11 @@ def lost_rocks(video, view, *, kept, releases, thrown_by, arrivals, house_frames
     fill-in times later. Whatever is left is settled by ``R.unaccounted`` exactly as an
     overhead release with no arrival would be: from what the house did, a
     rock that arrived unseen, struck a stone, or was hogged.
+
+    ``vouched``, a set, receives the ``id`` of each arrival a found slide
+    pairs with: that arrival was thrown, so ``fit.drop_clearing`` must not
+    take it for a stone moved while the house was cleared (Rochester sheet A
+    end 4's hammer, a guard swept away a second after it stopped).
 
     ``scan`` is ``(video, view, t0, t1) -> {colour: [(t, y, x)]}``,
     ``scan_points`` by default. A decode or detector error costs the end only
@@ -479,4 +484,7 @@ def lost_rocks(video, view, *, kept, releases, thrown_by, arrivals, house_frames
         return []
     claimed = {id(d) for d in thrown_by.values()}
     free = [d for d in arrivals if id(d) not in claimed]
-    return R.unaccounted(new, free, house_frames)
+    pairing = R.pair(new, free)
+    if vouched is not None:
+        vouched.update(id(d) for d in pairing[0].values())
+    return R.unaccounted(new, free, house_frames, pairing=pairing)
