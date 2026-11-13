@@ -506,7 +506,7 @@ class TestAnalyzeSearchesAShortEnd:
         i_audit = src.index("endcheck.check(")
         i_shots = src.index("shots_mod.from_deliveries(")
         assert i_pair < i_lost < i_audit < i_shots
-        guard = src[:i_lost][-200:]
-        assert "0 < short <= LOST_SEARCH_MAX" in guard
+        guard = src[:i_lost][-400:]
+        assert "0 < short <= limit" in guard and "LOST_SEARCH_MAX" in src[:i_lost][-700:]
         call = src[i_lost:][:200]
         assert "throw_view" in call and "throw_view = (sideviews.get(hogtime.CAMERA_FOR[OTHER_HOUSE[end.house]])" in src

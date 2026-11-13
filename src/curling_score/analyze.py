@@ -778,7 +778,12 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
     # search adds only slides the camera saw, and an end too short to fill is
     # where it is needed most (Rochester sheet C end 6: 7 short, five guards
     # short of a house-only overhead, all on the throwing camera).
-    if throw_view is not None and 0 < short <= LOST_SEARCH_MAX:
+    # The game's last end may stop short with the stream (Rochester sheet A's
+    # 11/4 game, cut off 11 rocks into end 8): no limit there, the search
+    # stays inside the end's own window either way.
+    limit = (fmt.delivered_per_end if game.ends and end.number == game.ends[-1].number
+             else LOST_SEARCH_MAX)
+    if throw_view is not None and 0 < short <= limit:
         stages.mark("rules")
         lost = sidereleases.lost_rocks(
             path, throw_view,
