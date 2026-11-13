@@ -299,6 +299,13 @@ SAME_SLIDE_S = 3.0
 GAP_FACTOR = 1.7
 # An end's median before it has two gaps to take one from.
 DEFAULT_INTERVAL_S = 55.0
+# After the last rock seen, the search reaches this many gaps on: an end that
+# lost both of its last two rocks hides the hammer two intervals out.
+# Rochester sheet B 10/28 (6IUB9KbPkpc) end 7: rock 15 was found 78 s after
+# rock 14, inside one reach, and blue's hammer slid 143 s after it, past it.
+# What lies beyond an end's last rock is the next end, thrown toward this
+# camera, which a slide (moving away from it) never matches.
+TAIL_REACHES = 2
 # A slide must be surer to add a rock than to time one: it has to run this
 # far, and reach the tee. The fill-in knows a rock is there and asks only for
 # FIT_MIN_SPAN_M. Scanning every end of five games (PHbZ3EKOhMI, bLkgfZaDSKw,
@@ -397,7 +404,7 @@ def search_windows(rocks, t0, t1) -> list[tuple[float, float]]:
     spans = [(ts[0] - reach, ts[0] - sep)]
     spans += [(a + sep, b - sep) for (a, ca), (b, cb) in zip(rocks, rocks[1:])
               if b - a >= reach or ca == cb]
-    spans.append((ts[-1] + sep, ts[-1] + reach))
+    spans.append((ts[-1] + sep, ts[-1] + TAIL_REACHES * reach))
     out = []
     for a, b in spans:
         a, b = max(a, t0), min(b, t1)

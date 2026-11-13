@@ -285,7 +285,7 @@ class TestWhereToLook:
         rocks = turns(100.0, 150.0, 200.0, 250.0, 400.0, 450.0)   # median gap 50 s
         got = S.search_windows(rocks, 0.0, 1000.0)
         reach = S.GAP_FACTOR * 50.0
-        assert got == [(100.0 - reach, 90.0), (260.0, 390.0), (460.0, 450.0 + reach)]
+        assert got == [(100.0 - reach, 90.0), (260.0, 390.0), (460.0, 450.0 + S.TAIL_REACHES * reach)]
 
     def test_between_two_of_a_colour_however_short_the_gap(self):
         """s_1aAUMPjTB3eCfHqHM end 2: a red lost between yellows 87.4 s apart,
@@ -366,7 +366,8 @@ class TestLostRocks:
         assert scan.calls == [
             (pytest.approx(max(5297.0 + S.TURNAROUND_S, first_release - reach)),
              pytest.approx(first_release - R.MIN_SEPARATION_S)),
-            (pytest.approx(last_release + R.MIN_SEPARATION_S), pytest.approx(last_release + reach)),
+            (pytest.approx(last_release + R.MIN_SEPARATION_S),
+             pytest.approx(min(6455.0, last_release + S.TAIL_REACHES * reach))),
         ]                                # no gap in a steady end is long enough
 
     def test_a_stone_pushed_along_at_walking_pace_is_not_a_throw(self):
