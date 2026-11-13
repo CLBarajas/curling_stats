@@ -183,6 +183,12 @@ def _no_phase(name, fraction, message=None):
 # stones already in the house, so the segmenter opens that end at the
 # recording's first moment. Within this of it, the first end was joined late.
 JOIN_S = 30.0
+# A stream that comes up as an end's first rock is sliding (Rochester sheet B,
+# 6IUB9KbPkpc, 10/28: blue already moving at 0:00) starts with an empty house,
+# so the segmenter opens the end later than JOIN_S. When that end is short and
+# its first rock seen arrived within this of the recording's start, the rock
+# before it was thrown as the stream came up: one interval is ~40-60 s.
+JOINED_FIRST_ROCK_S = 60.0
 
 
 def follows_lost(dest_view, guards_from_long_m) -> bool:
@@ -195,6 +201,17 @@ def follows_lost(dest_view, guards_from_long_m) -> bool:
     if dest_view is None:
         return False
     return bool(getattr(dest_view, "end_camera", False)) or guards_from_long_m is not None
+
+
+def thrown_as_it_began(kept, prev_end_s, recording_start_s: float, per_end: int):
+    """Who threw the recording's first end's first rock, where it was in motion
+    as the stream came up, else None: the end is the recording's first, short,
+    and its first rock seen arrived within JOINED_FIRST_ROCK_S of the start --
+    too soon for another to have been thrown in between since."""
+    if (prev_end_s is None and kept and len(kept) < per_end
+            and kept[0].t_enter - recording_start_s <= JOINED_FIRST_ROCK_S):
+        return rules.other_color(kept[0].color)
+    return None
 
 
 def joined_late(prev_end_s, start_s: float, recording_start_s: float = 0.0) -> bool:
@@ -625,6 +642,14 @@ def first_thrower_by_the_board(out_ends, board, fmt):
     """
     if board is None or not out_ends or fmt.placed_per_team:
         return None
+    # The team that scored the end before throws first, whatever the hammer
+    # was: only a blank needs the chain. Rochester sheet B 10/28 (6IUB9KbPkpc)
+    # lost end 1's first rock to the stream's start, so the chain never had a
+    # first end it could trust, and end 2 -- a steal by blue in end 1 -- put
+    # its own missing first blue last instead of first.
+    last = board.scores.per_end.get(out_ends[-1]["number"])
+    if last is not None and any(v > 0 for v in last.values()):
+        return next(c for c in rules.COLORS if last.get(c, 0) > 0)
     first = out_ends[0]
     if not first.get("hammer") or first.get("shots_observed") != first.get("shots_expected"):
         return None
@@ -827,6 +852,9 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
     # The next end's run-up begins when this end's last rock stopped.
     closed_s = min(end.end_s, kept[-1].t_rest) if kept else end.end_s
     late = joined_late(prev_end_s, end.start_s, ctx.recording_start_s)
+    if not late and first_color is None:
+        first_color = thrown_as_it_began(kept, prev_end_s, ctx.recording_start_s,
+                                         fmt.delivered_per_end)
     shots = shots_mod.from_deliveries(
         kept, seq, house_frames=house_seq, thrown_by={id(d): r for r, d in thrown_by.items()},
         fmt=fmt,

@@ -81,7 +81,35 @@ class TestTheBoardSaysWhoThrowsFirst:
             [end(1, "red"), end(2, "yellow")], board({1: {"red": 1, "yellow": 0}}), self.FOURS)
         assert got is None
 
-    def test_nothing_when_the_first_ends_own_hammer_is_a_guess(self):
+    def test_a_scored_end_says_it_whatever_was_seen_before(self):
+        """6IUB9KbPkpc: the stream began with end 1's first rock sliding, so
+        end 1 was never seen whole; blue stole two, and blue throws first in
+        end 2 whatever end 1's hammer was."""
         got = analyze.first_thrower_by_the_board(
-            [end(1, "red", observed=14)], board({1: {"red": 1, "yellow": 0}}), self.FOURS)
+            [end(1, "yellow", observed=14)], board({1: {"red": 0, "yellow": 2}}), self.FOURS)
+        assert got == "yellow"
+
+    def test_after_a_blank_it_still_needs_a_first_end_seen_whole(self):
+        got = analyze.first_thrower_by_the_board(
+            [end(1, "red", observed=14), end(2, "red")],
+            board({1: {"red": 1, "yellow": 0}, 2: {"red": 0, "yellow": 0}}), self.FOURS)
         assert got is None
+
+
+class TestARockSlidingAsTheStreamBegan:
+    """6IUB9KbPkpc (Rochester sheet B, 10/28): the stream came up with end 1's
+    first blue already sliding; the first rock seen was red, 48 s in."""
+
+    def kept(self, first_t, n=15):
+        return [d for _c, d in seen(n, "red")] and [
+            dv("red" if i % 2 == 0 else "yellow", first_t + 45.0 * i) for i in range(n)]
+
+    def test_the_rock_before_the_first_seen_was_the_other_team_s(self):
+        assert analyze.thrown_as_it_began(self.kept(48.0), None, 0.0, 16) == "yellow"
+
+    def test_not_when_the_first_rock_seen_came_later(self):
+        assert analyze.thrown_as_it_began(self.kept(140.0), None, 0.0, 16) is None
+
+    def test_not_for_a_later_end_or_a_full_one(self):
+        assert analyze.thrown_as_it_began(self.kept(48.0), 900.0, 0.0, 16) is None
+        assert analyze.thrown_as_it_began(self.kept(48.0, n=16), None, 0.0, 16) is None
