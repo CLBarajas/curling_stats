@@ -393,6 +393,28 @@ class TestLostRocks:
         arrivals, thrown_by = seen_end()
         assert lost(arrivals, thrown_by, Scan([("red", 5150.0)]), t0=5000.0) == []
 
+    def test_stones_at_rest_in_the_throwing_house_are_not_a_slide(self):
+        """vztdzCNM2fk (Rochester sheet C) end 2's run-up: three yellows parked
+        2.4 m apart down the sheet, which a line at 1.2 m/s crosses one after
+        another -- one sample at each, 1.4-2.0 s apart -- and the search took
+        two such lines for throws."""
+        arrivals, thrown_by = seen_end()
+
+        class Parked(Scan):
+            def __call__(self, video, view, t0, t1):
+                self.calls.append((t0, t1))
+                ts = [round(t0 + k / S.SCAN_FPS, 3) for k in range(int((t1 - t0) * S.SCAN_FPS))]
+                pts = [(t, y, x) for t in ts for y, x in ((-1.79, -0.5), (-0.11, 0.48), (2.31, -0.33))]
+                return {"red": [], "yellow": pts}
+        pts = Parked([])("v", view(), 5330.0, 5350.0)["yellow"]
+        got = S.find_slides(pts, 5330.0, 5350.0)
+        assert got and all(s.max_gap_s > S.LOST_MAX_GAP_S for s in got)
+        assert lost(arrivals, thrown_by, Parked([])) == []
+
+    def test_a_slide_seen_every_frame_has_no_gap(self):
+        got = S.fit_slide(slide(100.0, fps=S.SCAN_FPS))
+        assert got.max_gap_s == pytest.approx(1 / S.SCAN_FPS, abs=0.01)
+
     def test_a_slide_lost_before_the_tee_does_not_add_a_rock(self):
         """bLkgfZaDSKw end 3's one slide with no rock behind it: 1.46 m, to
         0.58 m short of the tee. A rock's own slide is let off lighter."""

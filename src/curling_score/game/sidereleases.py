@@ -91,6 +91,10 @@ class Slide:
     span_m: float
     x_m: float
     y_max_m: float
+    # The longest wait between two of its samples: a stone that slides is seen
+    # frame after frame, while a "slide" drawn through stones at rest is seen
+    # only where the line crosses each one.
+    max_gap_s: float = 0.0
 
     def t_at(self, y: float) -> float:
         return self.t_ref + (y - REF_Y_M) / self.speed_m_s
@@ -138,7 +142,8 @@ def fit_slide(points) -> Slide | None:
     t_ref = float((REF_Y_M - c) / b)
     return Slide(t_ref=t_ref, t_tee=float(-c / b), speed_m_s=float(b), n=len(kept),
                  span_m=float(np.ptp(ys)), x_m=float(np.median([q[2] for q in kept])),
-                 y_max_m=float(ys.max()))
+                 y_max_m=float(ys.max()),
+                 max_gap_s=float(np.diff(ts).max()) if len(ts) > 1 else 0.0)
 
 
 def stone_points(view, times, per_frame) -> list:
@@ -309,6 +314,12 @@ LOST_MIN_Y_MAX_M = 0.0
 # timeline had a blank slid at 1.95-2.24; the five stones seen pushed through
 # a throwing house between ends slid at 0.81-1.02.
 LOST_MIN_SPEED_M_S = 1.1
+# ...and be seen without a break this long. Rochester sheet C (vztdzCNM2fk)
+# end 2: three yellows at rest in the throwing house, 2.4 m apart down the
+# sheet, lined up as two "slides" at 1.2 m/s (13:51 and 14:06), one sample
+# where the line met each stone and 1.4-2.0 s between them. Real slides there
+# were seen every frame (0.2 s apart at SCAN_FPS); this allows three missed.
+LOST_MAX_GAP_S = 0.8
 # The search starts this long after the end's run-up does, which is the
 # previous end's last rock coming to rest. That house is this end's throwing
 # house, and it is being cleared: on bLkgfZaDSKw, the 6 s after end 1's last
@@ -454,7 +465,8 @@ def lost_rocks(video, view, *, kept, releases, thrown_by, arrivals, house_frames
         for color, p in pts.items():
             found += [(color, s) for s in find_slides(p, a, b)
                       if s.span_m >= LOST_MIN_SPAN_M and s.y_max_m >= LOST_MIN_Y_MAX_M
-                      and s.speed_m_s >= LOST_MIN_SPEED_M_S]
+                      and s.speed_m_s >= LOST_MIN_SPEED_M_S
+                      and s.max_gap_s <= LOST_MAX_GAP_S]
     # Two throws are never within R.MIN_SEPARATION_S of each other, so slides
     # that close together are stones being moved, and none of them is a throw.
     found = [(c, s) for c, s in found
