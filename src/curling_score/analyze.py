@@ -186,9 +186,12 @@ JOIN_S = 30.0
 # A stream that comes up as an end's first rock is sliding (Rochester sheet B,
 # 6IUB9KbPkpc, 10/28: blue already moving at 0:00) starts with an empty house,
 # so the segmenter opens the end later than JOIN_S. When that end is short and
-# its first rock seen arrived within this of the recording's start, the rock
-# before it was thrown as the stream came up: one interval is ~40-60 s.
-JOINED_FIRST_ROCK_S = 60.0
+# its first rock seen arrived this long after the recording's start -- about
+# one interval, ~40-60 s -- the rock before it was thrown as the stream came
+# up. Sooner than the lower bound there was no room for one: Rochester sheet
+# C 11/11 (vztdzCNM2fk) went live two minutes early, and its first rock seen,
+# a red released 9.7 s in, was the game's first (Chris).
+JOINED_FIRST_ROCK_S = (30.0, 60.0)
 
 
 def follows_lost(dest_view, guards_from_long_m) -> bool:
@@ -206,10 +209,11 @@ def follows_lost(dest_view, guards_from_long_m) -> bool:
 def thrown_as_it_began(kept, prev_end_s, recording_start_s: float, per_end: int):
     """Who threw the recording's first end's first rock, where it was in motion
     as the stream came up, else None: the end is the recording's first, short,
-    and its first rock seen arrived within JOINED_FIRST_ROCK_S of the start --
-    too soon for another to have been thrown in between since."""
+    and its first rock seen arrived about one interval after the start
+    (JOINED_FIRST_ROCK_S) -- room for exactly the one rock before it."""
+    lo, hi = JOINED_FIRST_ROCK_S
     if (prev_end_s is None and kept and len(kept) < per_end
-            and kept[0].t_enter - recording_start_s <= JOINED_FIRST_ROCK_S):
+            and lo <= kept[0].t_enter - recording_start_s <= hi):
         return rules.other_color(kept[0].color)
     return None
 

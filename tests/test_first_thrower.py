@@ -107,6 +107,11 @@ class TestARockSlidingAsTheStreamBegan:
     def test_the_rock_before_the_first_seen_was_the_other_team_s(self):
         assert analyze.thrown_as_it_began(self.kept(48.0), None, 0.0, 16) == "yellow"
 
+    def test_not_when_the_first_rock_seen_came_too_soon_for_one_before_it(self):
+        """vztdzCNM2fk (sheet C, 11/11): live two minutes early; the red released
+        9.7 s in was the game's first rock."""
+        assert analyze.thrown_as_it_began(self.kept(9.7), None, 0.0, 16) is None
+
     def test_not_when_the_first_rock_seen_came_later(self):
         assert analyze.thrown_as_it_began(self.kept(140.0), None, 0.0, 16) is None
 
