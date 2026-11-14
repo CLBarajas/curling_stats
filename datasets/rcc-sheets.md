@@ -163,7 +163,7 @@ release times come from the fallbacks on all three sheets.
 
 Run: `tests/test_weights.py`, `tests/test_calibrate.py`, `tests/test_endcam.py` and `tests/test_fixedboard.py`
 pass. The whole suite has failures in `test_conceded.py`, `test_fpframes_side.py` and `test_live_session.py`
-that are on `rcc`'s tip (`057f57f`) without these changes too, and errors from `fastapi` not being installed in
+that are on `rcc`'s tip (`47db7c7`) without these changes too, and errors from `fastapi` not being installed in
 the venv.
 
 ## Verified and inferred
