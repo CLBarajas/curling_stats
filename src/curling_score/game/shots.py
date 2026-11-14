@@ -455,6 +455,12 @@ def _fill_short_end(seq, per_end: int, max_fill: int = MAX_FILL,
     """
     short = per_end - len(seq)
     if not 0 < short <= max_fill:
+        # Too short to place its blanks, but who threw first is still known:
+        # the end is numbered and its hammer read from there (Rochester sheet C
+        # 11/11, ends 5-7: seven short behind a camera that cannot see its hog
+        # line, each read with the hammer the wrong way round).
+        if short > 0 and first_color and seq and seq[0][0] != first_color:
+            return [(first_color, Unseen("hammer"))] + list(seq)
         return seq
     seq = list(seq)
 

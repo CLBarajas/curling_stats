@@ -48,6 +48,19 @@ class TestAMissingFirstRock:
         assert len(got) == 16 and got[0][0] == "red" and shots.unseen(got[0][1])
 
 
+class TestAnEndTooShortToFill:
+    """vztdzCNM2fk (sheet C, 11/11) ends 5-7: nine of sixteen seen, first a red,
+    where the board says blue threw first."""
+
+    def test_it_still_gets_its_first_rock_in_front(self):
+        got = shots._fill_short_end(seen(9, "red"), 16, first_color="yellow")
+        assert len(got) == 10 and got[0][0] == "yellow" and shots.unseen(got[0][1])
+
+    def test_without_a_first_colour_it_is_left_alone(self):
+        nine = seen(9, "red")
+        assert shots._fill_short_end(nine, 16) == nine
+
+
 def end(number, hammer, observed=16):
     return {"number": number, "hammer": hammer, "shots_observed": observed, "shots_expected": 16}
 
