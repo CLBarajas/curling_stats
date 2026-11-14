@@ -463,6 +463,12 @@ def _fill_short_end(seq, per_end: int, max_fill: int = MAX_FILL,
             return [(first_color, Unseen("hammer"))] + list(seq)
         return seq
     seq = list(seq)
+    # A first rock the board says is missing is held back from the house
+    # sizes' mid-end pairs, which would otherwise spend the shortage first
+    # (Rochester sheet C 11/11 end 6: two short, both used as one pair, the
+    # end numbered from a red where blue threw first).
+    reserve = 1 if first_color and seq and seq[0][0] != first_color else 0
+    short -= reserve
 
     if house_sizes:
         sizes = iter(house_sizes)
@@ -491,6 +497,7 @@ def _fill_short_end(seq, per_end: int, max_fill: int = MAX_FILL,
                     p += 2 * pairs
             p += 1
 
+    short += reserve
     if first_color and short >= 1 and seq and seq[0][0] != first_color:
         seq.insert(0, (first_color, Unseen("hammer")))
         short -= 1

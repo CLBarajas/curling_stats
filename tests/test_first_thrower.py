@@ -48,6 +48,17 @@ class TestAMissingFirstRock:
         assert len(got) == 16 and got[0][0] == "red" and shots.unseen(got[0][1])
 
 
+class TestHouseSizesDoNotSpendTheFirstRocksBlank:
+    def test_two_short_with_a_house_that_wants_a_pair_still_gets_the_front(self):
+        """vztdzCNM2fk (sheet C, 11/11) end 6: two short, the house sizes asked
+        for a mid-end pair, and the board says blue threw first."""
+        rocks = seen(14, "red")
+        sizes = list(range(1, 15))
+        sizes[6:] = [s + 2 for s in sizes[6:]]          # two more stones from the 7th on
+        got = shots._fill_short_end(rocks, 16, house_sizes=sizes, first_color="yellow")
+        assert len(got) == 16 and got[0][0] == "yellow" and shots.unseen(got[0][1])
+
+
 class TestAnEndTooShortToFill:
     """vztdzCNM2fk (sheet C, 11/11) ends 5-7: nine of sixteen seen, first a red,
     where the board says blue threw first."""
