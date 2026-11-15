@@ -574,3 +574,24 @@ class TestTheThrowingCamerasCount:
         seen[5] = ("yellow", seen[5][1])
         assert not S.census_is_clean(seen, 16)
 
+
+class TestWhichCandidateIsWhichThrow:
+    def cand(self, color):
+        from types import SimpleNamespace
+        return SimpleNamespace(color=color)
+
+    def test_each_slide_takes_the_nearest_of_its_colour_once(self):
+        a, b, c = self.cand("yellow"), self.cand("red"), self.cand("yellow")
+        seen = [("yellow", _slide(100.0, 13)), ("red", _slide(160.0, 13)), ("yellow", _slide(220.0, 13))]
+        timed = [(101.5, a), (158.0, b), (221.0, c)]
+        assert S.census_candidates(seen, timed) == [a, b, c]
+
+    def test_a_release_read_in_the_other_colour_is_not_the_throw(self):
+        # Sheet D end 3 rock 8: the blue throw, and only a red candidate near it.
+        red = self.cand("red")
+        assert S.census_candidates([("yellow", _slide(2372.2, 14))], [(2373.0, red)]) == [None]
+
+    def test_a_candidate_too_far_in_time_is_not_it(self):
+        a = self.cand("red")
+        assert S.census_candidates([("red", _slide(100.0, 13))], [(100.0 + S.R.MIN_SEPARATION_S, a)]) == [None]
+

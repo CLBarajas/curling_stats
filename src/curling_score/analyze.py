@@ -828,14 +828,15 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
     # come to an end's worth in turn -- then a stone the overhead saw move with
     # no throw behind it, knocked or cleared, is not a rock of the end.
     census = ctx.throws_from_end_camera and throw_view is not None
-    seen = []
+    seen, pairs = [], []
     if throw_view is not None and (census or 0 < short <= limit):
         stages.mark("rules")
         lost = sidereleases.lost_rocks(
             path, throw_view,
             kept=kept, releases=releases, thrown_by=thrown_by, arrivals=arrivals,
             house_frames=seq, t0=since, t1=end.end_s, vouched=vouched,
-            per_end=fmt.delivered_per_end, whole=census, seen=seen if census else None)
+            per_end=fmt.delivered_per_end, whole=census, seen=seen if census else None,
+            pairs=pairs)
         stages.mark("lost")
         if lost:
             progress(f"    end {end.number}: {len(lost)} rock(s) the overhead saw at "
@@ -856,19 +857,28 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
                      f"saw thrown")
         only = None
         if census and sidereleases.census_is_clean(seen, fmt.delivered_per_end):
-            thrown = fit.released_ids(thrown_by, unaccounted) | vouched
-            n = sum(1 for d in arrivals + unaccounted if id(d) in thrown)
-            # Held to exactly an end's worth: a throw whose colour one camera
-            # misread is explained away without a candidate of its own, and
-            # then the count says less than the rules already do.
-            if n == fmt.delivered_per_end:
-                only = thrown
-                progress(f"    end {end.number}: the throwing camera counts all "
-                         f"{n} throws, in turn; "
-                         f"{len(arrivals) + len(unaccounted) - n} stone(s) moved with no throw behind them")
-            else:
-                progress(f"    end {end.number}: the throwing camera counts "
-                         f"{len(seen)} throws in turn, {n} of them matched: not used to drop any")
+            # Each counted throw's candidate: the arrival its release was
+            # paired with, or the release standing in for an arrival nothing
+            # saw. A throw with neither -- the overhead read its release in
+            # the other colour and explained it away as the stone it knocked
+            # (sheet D 11/9 end 3 rock 8, a draw that crashed a guard) -- gets
+            # one of its own, settled by the house and placed by the camera
+            # facing it like any other the overhead lost.
+            timed = ([(r.t, d) for r, d in thrown_by.items()] + [(r.t, d) for r, d in pairs]
+                     + [(d.release.t, d) for d in unaccounted
+                        if getattr(d, "release", None) is not None])
+            matched = sidereleases.census_candidates(seen, timed)
+            orphans = [sidereleases.release_of(c, s)
+                       for (c, s), m in zip(seen, matched) if m is None]
+            extra = release.unaccounted(orphans, [], seq) if orphans else []
+            if extra and follows_lost(dest_view, ctx.guards_from_long_m):
+                extra, _n = farfollow.follow_lost(
+                    extra, lambda color, t: farfollow.follow(path, dest_view, color, t))
+            unaccounted = unaccounted + extra
+            only = {id(d) for d in matched if d is not None} | {id(d) for d in extra}
+            progress(f"    end {end.number}: the throwing camera counts all "
+                     f"{len(seen)} throws, in turn; {len(extra)} had no candidate, and "
+                     f"{len(arrivals) + len(unaccounted) - len(only)} stone(s) moved with no throw behind them")
         elif census:
             progress(f"    end {end.number}: the throwing camera counts {len(seen)} slide(s), "
                      f"not an end in turn")

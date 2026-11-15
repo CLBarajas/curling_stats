@@ -480,8 +480,35 @@ def census_is_clean(seen, per_end) -> bool:
     return len(colours) == per_end and all(a != b for a, b in zip(colours, colours[1:]))
 
 
+def census_candidates(seen, timed, tol_s=R.MIN_SEPARATION_S):
+    """For each slide of the throwing camera's count, the candidate that is
+    that throw, or None: ``timed`` is ``(t_release, candidate)`` for every
+    candidate a release stands behind, and a slide's is the nearest in time of
+    its own colour within ``tol_s``, each candidate taken once. The slide's
+    colour decides: the camera behind the thrower sees the handle from a
+    stone's length away, and a release the overhead read in the other colour
+    is not this throw's."""
+    used, out = set(), []
+    for color, s in seen:
+        near = [(abs(t - s.t_ref), k) for k, (t, d) in enumerate(timed)
+                if k not in used and d.color == color and abs(t - s.t_ref) < tol_s]
+        if near:
+            k = min(near)[1]
+            used.add(k)
+            out.append(timed[k][1])
+        else:
+            out.append(None)
+    return out
+
+
+def release_of(color, slide):
+    """A slide the count found, as the release the rest of the pipeline reads."""
+    return _as_release(color, slide)
+
+
 def lost_rocks(video, view, *, kept, releases, thrown_by, arrivals, house_frames,
-               t0, t1, scan=None, vouched=None, per_end=None, whole=False, seen=None) -> list:
+               t0, t1, scan=None, vouched=None, per_end=None, whole=False, seen=None,
+               pairs=None) -> list:
     """The rocks an end the rules left short lost at both ends of the sheet, as
     deliveries ``fit.fit_end`` can place; [] when there are none.
 
@@ -510,6 +537,8 @@ def lost_rocks(video, view, *, kept, releases, thrown_by, arrivals, house_frames
     receives every slide a throw could have made, ``(colour, Slide)`` in time
     order: the throwing camera's own count of the end, for a club whose
     overheads lose too much to say where the gaps are (`analyze`'s census).
+    ``pairs``, a list, receives ``(release, arrival)`` for each found slide
+    that pairs with an arrival.
 
     ``scan`` is ``(video, view, t0, t1) -> {colour: [(t, y, x)]}``,
     ``scan_points`` by default. A decode or detector error costs the end only
@@ -553,4 +582,6 @@ def lost_rocks(video, view, *, kept, releases, thrown_by, arrivals, house_frames
     pairing = R.pair(new, free)
     if vouched is not None:
         vouched.update(id(d) for d in pairing[0].values())
+    if pairs is not None:
+        pairs.extend(pairing[0].items())
     return R.unaccounted(new, free, house_frames, pairing=pairing)
