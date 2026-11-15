@@ -96,6 +96,14 @@ class ViewerHandler(http.server.SimpleHTTPRequestHandler):
                 Path(tmp).unlink(missing_ok=True)
                 raise
 
+    def end_headers(self):
+        # Every file is asked for again each time, answered 304 where it has
+        # not changed: without this a browser keeps `timeline.json` and
+        # `app.js` on its own guess (a tenth of the file's age), so a port
+        # pointed at a newer run, or a rebuilt viewer, shows the old one.
+        self.send_header("Cache-Control", "no-cache")
+        super().end_headers()
+
     def log_message(self, fmt, *args):  # quieter: one line per request is noise
         if self.command == "POST":
             super().log_message(fmt, *args)
