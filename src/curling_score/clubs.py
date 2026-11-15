@@ -242,14 +242,21 @@ DALLAS = Club("dallas", (
 _RCC_TEAL = ((70, 18, 60), (99, 140, 240))
 _RCC_PURPLE = ((112, 18, 60), (145, 140, 240))
 _RCC_TEAL_HEX, _RCC_PURPLE_HEX = "#4f9a8c", "#6a5a94"
+_RCC_CAMERA_M = 16.0
 ROCHESTER = Club("rochester", (
     ("top", Panel("bottom", HousePaint(twelve_ft=(_RCC_TEAL,), four_ft=(_RCC_PURPLE,)))),
     ("bottom", Panel("bottom", HousePaint(twelve_ft=(_RCC_PURPLE,), four_ft=(_RCC_TEAL,)))),
 ), end_cameras={
+    # A camera whose hog line is out of its picture is placed from the rings,
+    # the camera taken to be 16 m from its tee: the seven of Rochester's eight
+    # end cameras that show their hog lines measure 15.5 to 16.8 m, and held at
+    # 16 m each puts a guard 4 m out within 4 cm of where its painted line
+    # does (`out/c-right-cam/ringfit.py`, 2026-11-15). Sheet C's right camera
+    # is the eighth: its hog row comes out at 845, seven rows below its tile.
     "top": ("left", EndPaint(ring=(_RCC_TEAL,), inner_radius_m=C.R_8FT_M, hog="dark",
-                             hog_search_rows=340)),
+                             hog_search_rows=340, hog_from_rings=_RCC_CAMERA_M)),
     "bottom": ("right", EndPaint(ring=(_RCC_PURPLE,), inner_radius_m=C.R_8FT_M, hog="dark",
-                             hog_search_rows=340)),
+                             hog_search_rows=340, hog_from_rings=_RCC_CAMERA_M)),
 }, panel_layout=PanelLayout(top=(6, 733, 310, 341), bottom=(1604, 734, 310, 340)),
     side_rects={"left": (6, 6, 950, 838), "right": (964, 6, 950, 838)},
     one_game_per_stream=True,

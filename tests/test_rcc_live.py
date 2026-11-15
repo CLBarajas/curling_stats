@@ -26,7 +26,7 @@ class TestEndViews:
         def solve(plate, rect, paint, name, end_camera):
             if name.split()[0] in fails:
                 raise sideview.SideViewError("no dark hog line in view")
-            return SimpleNamespace(view=_view(), ring_residual_m=0.01, centre_rows=150)
+            return SimpleNamespace(view=_view(), ring_residual_m=0.01, centre_rows=150, hog_seen=True)
         monkeypatch.setattr(analyze.endcam, "solve", solve)
         monkeypatch.setattr(analyze, "_side_rects",
                             lambda panels, club, w, h: {"left": (0, 0, 10, 10), "right": (10, 0, 10, 10)})

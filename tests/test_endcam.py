@@ -61,6 +61,41 @@ class TestSolve:
             endcam.solve(np.full((720, 513, 3), 225, np.uint8), RECT, PAINT, "blue")
 
 
+class TestTheHogLineOutOfThePicture:
+    """Rochester sheet C's right camera stops a few rows short of its hog
+    line: with the camera's distance given, the rings place it."""
+
+    # The line is looked for as Rochester's is, a dark row: the synthetic
+    # view's line is 98 grey levels under its ice.
+    def paint(self, **kw):
+        return endcam.EndPaint(ring=(cal.BLUE_HSV,), inner_radius_m=C.R_8FT_M, hog="dark",
+                               hog_search_rows=400, **kw)
+
+    def cropped(self):
+        # The same camera, its picture cut 40 rows above the hog line.
+        img = end_view()[:int(TRUE.hog_row) - 40]
+        return img, (0, 0, img.shape[1], img.shape[0])
+
+    def test_it_is_refused_unless_the_profile_gives_the_camera_s_distance(self):
+        img, rect = self.cropped()
+        with pytest.raises(SideViewError, match="no dark hog line"):
+            endcam.solve(img, rect, self.paint(), "blue")
+
+    def test_the_rings_place_the_hog_row_and_the_guards_in_front_of_the_house(self):
+        img, rect = self.cropped()
+        fit = endcam.solve(img, rect, self.paint(hog_from_rings=TRUE.d_m), "blue")
+        assert not fit.hog_seen
+        assert fit.view.hog_row > rect[3]                    # below the picture
+        assert fit.view.hog_row == pytest.approx(TRUE.hog_row, abs=6.0)
+        for x, y in ((0.0, 2.5), (1.0, 4.0), (-1.5, 3.0), (0.5, 5.0)):
+            col, row = TRUE.to_image(x, y)
+            assert fit.view.to_house(col, row) == pytest.approx((x, y), abs=0.10)
+
+    def test_a_hog_line_in_view_is_still_read_from_its_paint(self):
+        fit = endcam.solve(end_view(), RECT, self.paint(hog_from_rings=20.0), "blue")
+        assert fit.hog_seen and fit.view.hog_row == pytest.approx(TRUE.hog_row, abs=1.0)
+
+
 class TestEndCameraCrossing:
     def test_a_later_sighting_in_the_column_does_not_unmake_the_crossing(self):
         # rKiMmtVod0I end 2 rock 2: the stone crosses at 2686.9 s and leaves the

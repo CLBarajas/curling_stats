@@ -65,6 +65,10 @@ class EndPaint:
     # How far below the house a dark hog line is looked for: further where the
     # camera sits well behind its hog line, as Rochester's do.
     hog_search_rows: int = 200
+    # Where the hog line's paint is not found: the camera's distance from the
+    # tee in metres, held while the hog row is fitted from the rings (`solve`)
+    # instead of the camera being refused. None refuses it.
+    hog_from_rings: float | None = None
 
 
 @dataclass(frozen=True)
@@ -73,6 +77,9 @@ class EndFit:
     ring_residual_m: float  # median, 12-foot edge
     inner_residual_m: float
     centre_rows: int
+    # False where the hog row was worked out from the rings, its paint not in
+    # the picture (`solve`).
+    hog_seen: bool = True
 
 
 def _mask(view, bands):
@@ -201,6 +208,11 @@ def _view(rect, hog, tee, d, a, b, lat, end_camera=True):
 
 
 def _residuals(p, pts, radii, hog, rect, line=None):
+    # ``hog`` None: the hog row is fitted with the rest, the last parameter.
+    if hog is None:
+        p, hog = p[:-1], p[-1]
+        if hog <= p[0] + 1.0:
+            return np.full(len(pts), 10.0)
     tee, d, lat = p[0], p[1], p[-1]
     a, b = line if line is not None else (p[2], p[3])
     if d <= C.TEE_TO_HOGLINE_M + 0.2 or lat <= 0:
@@ -241,16 +253,37 @@ def _lm(f, p, iters=200):
     return p, r
 
 
-def solve(plate, rect, paint: EndPaint, name: str = "end", end_camera: bool = True) -> EndFit:
+def solve(plate, rect, paint: EndPaint, name: str = "end", end_camera: bool = True,
+          hog_from_rings: float | None = None) -> EndFit:
     """Fit a `SideView` to an end camera's view of its own house -- or, with
     ``end_camera`` False, to a long camera's view of the far house, which is
-    the same geometry from further away."""
+    the same geometry from further away.
+
+    Where the hog line's paint is not in the picture and ``paint.hog_from_rings``
+    gives the camera's distance from the tee, the hog row is fitted from the
+    rings with that distance held: the hog line is then a row worked out,
+    possibly below the picture, not one seen, and ``EndFit.hog_seen`` says so.
+    The distance has to be given. The rings alone leave it loose -- they span
+    3.7 m of a 16 m throw -- and fitted free on Rochester's eight end cameras
+    it came out anywhere from 16 to 135 m, a guard 4 m out placed 20 cm to a
+    metre long; held at the 16 m the club's other cameras measure, 4 m is
+    right to a few centimetres (`out/c-right-cam/ringfit.py`).
+    ``hog_from_rings`` given here forces that fit where the paint is in view,
+    to measure it."""
     x0, y0, w, h = rect
     view = np.ascontiguousarray(np.asarray(plate)[y0:y0 + h, x0:x0 + w])
     outer, inner = ring_edges(view, paint)
     below = int(outer[:, 1].max()) + 20
-    hog = (dark_hog_row(view, below, paint.hog_search_rows) if paint.hog == "dark"
-           else hog_row(view, below, paint.hog))
+    hog, d_held = None, hog_from_rings
+    if d_held is None:
+        try:
+            hog = (dark_hog_row(view, below, paint.hog_search_rows) if paint.hog == "dark"
+                   else hog_row(view, below, paint.hog))
+        except SideViewError:
+            if paint.hog_from_rings is None:
+                raise
+            d_held = paint.hog_from_rings
+    hog_seen = hog is not None
     pts = np.vstack([outer, inner])
     radii = np.r_[np.full(len(outer), C.R_12FT_M), np.full(len(inner), paint.inner_radius_m)]
     xl, xr = outer[:, 0].min(), outer[:, 0].max()
@@ -259,13 +292,24 @@ def solve(plate, rect, paint: EndPaint, name: str = "end", end_camera: bool = Tr
 
     # 1. The rings alone, from a few camera distances.
     best = None
-    for d0 in (8.0, 10.0, 15.0, 25.0, 40.0):
-        p, r = _lm(lambda q: _residuals(q, pts, radii, hog, rect),
-                   np.array([tee0, d0, (xl + xr) / 2, 0.0, lat0]))
-        cost = float(np.median(np.abs(r)))
-        if best is None or cost < best[0]:
-            best = (cost, p)
-    p = best[1]
+    if hog_seen:
+        for d0 in (8.0, 10.0, 15.0, 25.0, 40.0):
+            p, r = _lm(lambda q: _residuals(q, pts, radii, hog, rect),
+                       np.array([tee0, d0, (xl + xr) / 2, 0.0, lat0]))
+            cost = float(np.median(np.abs(r)))
+            if best is None or cost < best[0]:
+                best = (cost, p)
+        p, hog_guess = best[1], float(hog)
+    else:
+        # The distance held, the hog row free. It starts where the tee row and
+        # the ring's front edge put it: row = yh + c / (d - x) through those
+        # two, read at the hog line. (Started a few ring-heights down instead,
+        # the fit can settle on a row just under the house.)
+        c0 = (outer[:, 1].max() - tee0) / (1 / (d_held - C.R_12FT_M) - 1 / d_held)
+        hog0 = tee0 - c0 / d_held + c0 / (d_held - C.TEE_TO_HOGLINE_M)
+        q, _r = _lm(lambda q: _residuals(np.r_[q[0], d_held, q[1:]], pts, radii, None, rect),
+                    np.array([tee0, (xl + xr) / 2, 0.0, lat0, hog0]))
+        p, hog_guess = np.r_[q[0], d_held, q[1:4]], float(q[4])
 
     # 2. The painted centre line, from the house down to the hog line, which
     # the rings cannot reach: their fit leans 0.06 px a row off it on
@@ -273,11 +317,13 @@ def solve(plate, rect, paint: EndPaint, name: str = "end", end_camera: bool = Tr
     lum = view.astype(np.float32).mean(axis=2)
     if paint.centre == "sidelines":
         top = int(outer[:, 1].min()) - 30
-        line, centre_rows = _sideline_centre(lum, p, hog, rect, np.arange(top, int(hog) + 60), name)
-        return _finish(view, rect, pts, radii, outer, hog, p, line, centre_rows, name, end_camera)
+        line, centre_rows = _sideline_centre(lum, p, hog_guess, rect,
+                                             np.arange(top, min(int(hog_guess) + 60, h - 2)), name)
+        return _finish(view, rect, pts, radii, outer, hog, p, line, centre_rows, name, end_camera,
+                       hog_guess)
     # A long camera sees the far house small, with few rows to its hog line,
     # but the line runs on toward the camera: trace it the rest of the view.
-    last = int(hog) - 6 if end_camera else h - 2
+    last = min(int(hog_guess) - 6, h - 2) if end_camera else h - 2
     rows = np.arange(int(outer[:, 1].max()) + 10, last, 2)
     # Traced from the ring fit's guess, and from a plumb line through the
     # ring's middle: stones parked against one end of DFW's left camera's ring
@@ -300,15 +346,23 @@ def solve(plate, rect, paint: EndPaint, name: str = "end", end_camera: bool = Tr
     if keep.sum() < paint.centre_min_rows:
         raise SideViewError(f"{name}: the centre line was traced on only {int(keep.sum())} rows")
     line = (float(q[1]), float(q[0]))
-    return _finish(view, rect, pts, radii, outer, hog, p, line, int(keep.sum()), name, end_camera)
+    return _finish(view, rect, pts, radii, outer, hog, p, line, int(keep.sum()), name, end_camera,
+                   hog_guess)
 
 
-def _finish(view, rect, pts, radii, outer, hog, p, line, centre_rows, name, end_camera):
+def _finish(view, rect, pts, radii, outer, hog, p, line, centre_rows, name, end_camera, hog_guess=None):
     # 3. The rings again, the centre line held to the paint.
-    t, r = _lm(lambda tt: _residuals(tt, pts, radii, hog, rect, line), np.array([p[0], p[1], p[4]]))
+    hog_seen = hog is not None
+    if hog_seen:
+        t, r = _lm(lambda tt: _residuals(tt, pts, radii, hog, rect, line), np.array([p[0], p[1], p[4]]))
+    else:
+        d = float(p[1])       # held: the rings alone leave it loose (`solve`)
+        q, r = _lm(lambda q: _residuals(np.r_[q[0], d, q[1], q[2]], pts, radii, None, rect, line),
+                   np.array([p[0], p[4], hog_guess]))
+        t, hog = np.array([q[0], d, q[1]]), float(q[2])
     ring = float(np.median(np.abs(r[:len(outer)])))
     if ring > (MAX_RING_RESIDUAL_M if end_camera else MAX_RING_RESIDUAL_LONG_M):
         raise SideViewError(f"{name}: the 12-foot ring fits only to {ring * 100:.1f} cm")
     v = _view(rect, hog, t[0], t[1], line[0], line[1], t[2], end_camera)
     return EndFit(view=v, ring_residual_m=ring, inner_residual_m=float(np.median(np.abs(r[len(outer):]))),
-                  centre_rows=centre_rows)
+                  centre_rows=centre_rows, hog_seen=hog_seen)

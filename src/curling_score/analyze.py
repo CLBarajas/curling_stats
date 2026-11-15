@@ -420,7 +420,8 @@ def _end_views(calib_frames, panels, club, progress, cameras=None, end_camera=Tr
                 progress(f"{side} {kind} camera, {house} house: unusable, left out: {exc}")
                 continue
             progress(f"{side} {kind} camera, {house} house: tee row {fit.view.tee_row:.1f}, hog row "
-                     f"{fit.view.hog_row:.1f}, d {fit.view.d_m:.2f} m, ring {fit.ring_residual_m * 100:.1f} cm, "
+                     f"{fit.view.hog_row:.1f}{'' if fit.hog_seen else ' (out of the picture: from the rings)'}, "
+                     f"d {fit.view.d_m:.2f} m, ring {fit.ring_residual_m * 100:.1f} cm, "
                      f"centre line on {fit.centre_rows} rows")
             views[hogtime.CAMERA_FOR[house]] = fit.view
         if not views:
