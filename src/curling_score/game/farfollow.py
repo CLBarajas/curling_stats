@@ -64,7 +64,12 @@ SEED_MIN_Y_M = 7.5
 # parked there, which is why such a view's seed must also be somewhere no stone
 # sat when the window opened (`PARKED_S`), a few seconds before any throw
 # reaches the far hog line.
-END_SEED_BAND_M = 1.0
+# 1.6, not 1.0: a stone directly under the camera is cut by the picture's edge
+# and is not boxed until it is whole. Rochester sheet D 11/9: end 1 rock 10 and
+# end 3 rock 6 were first boxed 1.1 m in (5.68 and 5.72 m from the tee, the
+# band's edge at 5.82), so neither was followed -- one ran through the house,
+# the other stopped a corner guard 3 m out -- and both were charted hogged.
+END_SEED_BAND_M = 1.6
 PARKED_S = 1.0
 SEED_BY_S = 26.0                # after the release
 ON_SHEET_X_M = 2.2
