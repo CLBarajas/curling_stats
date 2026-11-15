@@ -791,7 +791,11 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
         return cands, fit.fit_end(fit.drop_clearing(
             cands, seq, fit.released_ids(thrown_by, unaccounted) | vouched,
             per_end=fmt.delivered_per_end),
-            paired=fit.paired_ids(thrown_by, taken_back),
+            # An arrival the long camera's search saw thrown stands as a
+            # paired one does: the search found its release (Rochester sheet
+            # C 11/11 end 2's rock 10, a red takeout 105 s after the red
+            # before it, with the slide that threw it found and then unused).
+            paired=fit.paired_ids(thrown_by, taken_back) | vouched,
             per_end=fmt.delivered_per_end, per_team=fmt.delivered_per_team)
 
     vouched = set()     # arrivals the long camera's search saw thrown
@@ -817,7 +821,8 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
         lost = sidereleases.lost_rocks(
             path, throw_view,
             kept=kept, releases=releases, thrown_by=thrown_by, arrivals=arrivals,
-            house_frames=seq, t0=since, t1=end.end_s, vouched=vouched)
+            house_frames=seq, t0=since, t1=end.end_s, vouched=vouched,
+            per_end=fmt.delivered_per_end)
         stages.mark("lost")
         if lost:
             progress(f"    end {end.number}: {len(lost)} rock(s) the overhead saw at "

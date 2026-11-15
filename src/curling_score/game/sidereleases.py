@@ -383,7 +383,12 @@ def find_slides(points, t0, t1) -> list[Slide]:
     return sorted(found, key=lambda s: s.t_ref)
 
 
-def search_windows(rocks, t0, t1) -> list[tuple[float, float]]:
+# An end's rocks are never thrown closer together than this on average: the
+# floor under an interval worked out from an end's span (`search_windows`).
+MIN_INTERVAL_S = 45.0
+
+
+def search_windows(rocks, t0, t1, per_end=None) -> list[tuple[float, float]]:
     """Where an end short of rocks could be hiding one, given ``(t, colour)``
     for when each rock it has was thrown: before the first, after the last,
     between two of a colour -- the other team's rock must lie between them --
@@ -392,7 +397,18 @@ def search_windows(rocks, t0, t1) -> list[tuple[float, float]]:
     leaves ``t0..t1``.
 
     The colour rule is not the gap rule's to catch: s_1aAUMPjTB3eCfHqHM end 2
-    lost a red between two yellows 87 s apart, when its reach was 88 s."""
+    lost a red between two yellows 87 s apart, when its reach was 88 s.
+
+    The median gap of an end missing several rocks is already two rocks long,
+    and a gap holding one lost rock then looks ordinary: Rochester sheet A
+    11/4 end 5 (rocks 2 and 3, 122 s between a red and a blue against a reach
+    of 147 s) and sheet C 11/11 end 2 (three rocks in gaps of 100 and 158 s
+    against 170 s). So with ``per_end`` given and the end short of it, a gap
+    between two rocks is judged by the smaller of the median and the end's
+    span shared among ``per_end`` rocks, never under MIN_INTERVAL_S (an end
+    the stream cut off has a short span and all its rocks). The reaches
+    before the first rock and after the last keep the median: a shorter one
+    there would only look less far."""
     rocks = sorted(rocks)
     if not rocks:
         return [(t0, t1)] if t1 > t0 else []
@@ -400,10 +416,14 @@ def search_windows(rocks, t0, t1) -> list[tuple[float, float]]:
     gaps = [b - a for a, b in zip(ts, ts[1:])]
     interval = sorted(gaps)[len(gaps) // 2] if len(gaps) >= 2 else DEFAULT_INTERVAL_S
     reach = GAP_FACTOR * interval
+    between = reach
+    if per_end and 2 <= len(rocks) < per_end:
+        shared = max((ts[-1] - ts[0]) / (per_end - 1), MIN_INTERVAL_S)
+        between = GAP_FACTOR * min(interval, shared)
     sep = R.MIN_SEPARATION_S
     spans = [(ts[0] - reach, ts[0] - sep)]
     spans += [(a + sep, b - sep) for (a, ca), (b, cb) in zip(rocks, rocks[1:])
-              if b - a >= reach or ca == cb]
+              if b - a >= between or ca == cb]
     spans.append((ts[-1] + sep, ts[-1] + TAIL_REACHES * reach))
     out = []
     for a, b in spans:
@@ -435,7 +455,7 @@ def rock_times(kept, thrown_by, lags=()) -> list[tuple[float, str]]:
 
 
 def lost_rocks(video, view, *, kept, releases, thrown_by, arrivals, house_frames,
-               t0, t1, scan=None, vouched=None) -> list:
+               t0, t1, scan=None, vouched=None, per_end=None) -> list:
     """The rocks an end the rules left short lost at both ends of the sheet, as
     deliveries ``fit.fit_end`` can place; [] when there are none.
 
@@ -457,6 +477,8 @@ def lost_rocks(video, view, *, kept, releases, thrown_by, arrivals, house_frames
     take it for a stone moved while the house was cleared (Rochester sheet A
     end 4's hammer, a guard swept away a second after it stopped).
 
+    ``per_end`` is the format's rocks an end, for `search_windows`.
+
     ``scan`` is ``(video, view, t0, t1) -> {colour: [(t, y, x)]}``,
     ``scan_points`` by default. A decode or detector error costs the end only
     what the search would have added.
@@ -466,7 +488,8 @@ def lost_rocks(video, view, *, kept, releases, thrown_by, arrivals, house_frames
     if scan is None:
         scan = scan_points
     lags = [d.t_enter - r.t for r, d in thrown_by.items()]
-    windows = search_windows(rock_times(kept, thrown_by, lags), t0 + TURNAROUND_S, t1)
+    windows = search_windows(rock_times(kept, thrown_by, lags), t0 + TURNAROUND_S, t1,
+                             per_end=per_end)
     found = []
     for a, b in windows:
         try:

@@ -295,6 +295,30 @@ class TestWhereToLook:
         got = S.search_windows(rocks, 915.0, 1835.0)
         assert (1333.8, pytest.approx(1401.2)) in got
 
+    def test_a_short_end_s_gaps_are_judged_by_its_span_not_its_inflated_median(self):
+        """Rochester sheet A 11/4 end 5: red 4150.9 then blue 4272.6, 121.7 s
+        apart, with two rocks lost between them; the median gap of the 14
+        seen was 86.6 s (reach 147 s), the span shared among 16 about 60 s."""
+        seen = [4150.9, 4272.6] + [4272.6 + 86.6 * k for k in range(1, 8)] + [
+            4272.6 + 86.6 * 7 + 40.0 * k for k in range(1, 6)]
+        rocks = turns(*seen)
+        assert len(rocks) == 14
+        assert not any(a < 4200 < b for a, b in S.search_windows(rocks, 4100.0, 5200.0))
+        got = S.search_windows(rocks, 4100.0, 5200.0, per_end=16)
+        assert (4160.9, pytest.approx(4262.6)) in got
+        # Before the first rock and after the last the reach is the median's still.
+        plain = S.search_windows(rocks, 0.0, 9000.0)
+        assert S.search_windows(rocks, 0.0, 9000.0, per_end=16)[0] == plain[0]
+        assert S.search_windows(rocks, 0.0, 9000.0, per_end=16)[-1] == plain[-1]
+
+    def test_a_full_end_and_one_the_stream_cut_off_are_searched_as_before(self):
+        full = turns(*[100.0 + 60.0 * k for k in range(16)])
+        assert S.search_windows(full, 0.0, 2000.0, per_end=16) == S.search_windows(full, 0.0, 2000.0)
+        # Six rocks in 150 s: the span shared among 16 is 10 s, held at the floor.
+        cut = turns(*[100.0 + 30.0 * k for k in range(6)])
+        got = S.search_windows(cut, 0.0, 2000.0, per_end=16)
+        assert got == S.search_windows(cut, 0.0, 2000.0)
+
     def test_it_never_leaves_the_end(self):
         got = S.search_windows(turns(100.0, 150.0, 200.0), 60.0, 205.0)
         assert got == [(60.0, 90.0)]
