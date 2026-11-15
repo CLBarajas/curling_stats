@@ -4706,6 +4706,22 @@ class TestTheRelease:
         assert got == [[[RED_INK], [GOLD_DOT], [TEAL]], [[RED_INK], [ROCHESTER_BLUE]],
                        [RED_INK, ROCHESTER_BLUE]]
 
+    def test_the_rings_are_painted_as_the_club_paints_the_house_an_end_is_played_into(self):
+        # Rochester's two houses swap teal and purple. A timeline with no
+        # `houses` block, a house it leaves out, or a colour that is not
+        # "#rrggbb" draws Granite's green and blue, and going back to such an
+        # end puts them back.
+        houses = {"top": {"twelve": "#4f9a8c", "four": "#6a5a94"},
+                  "bottom": {"twelve": "#6a5a94", "four": "teal"}}
+        got = run_js(f"const h = {json.dumps(houses)}; const stock = [PAINT.twelve, PAINT.four];"
+                     "const p = x => [x.twelve, x.four];"
+                     "out([stock, p(applyHouse(h, 'top')), [PAINT.twelve, PAINT.four],"
+                     " p(applyHouse(h, 'bottom')), p(applyHouse(h, undefined)), p(applyHouse(undefined, 'top'))]);")
+        stock = got[0]
+        assert got[1] == got[2] == ["#4f9a8c", "#6a5a94"]
+        assert got[3] == ["#6a5a94", stock[1]]
+        assert got[4] == got[5] == stock
+
     def test_the_marker_sits_on_the_path_at_the_release_in_both_orientations(self):
         i = [p[0] for p in delivery_points()].index(0.5)
         for box, side in (("DELIVERYBOX", False), ("DESKDELIVERYBOX", True),
@@ -5075,7 +5091,7 @@ class TestTheTabletLayoutGate:
         queries = [q.strip() for q in re.findall(r"@media ([^{]+)\{", css)]
         want = run_js("out(TABLET_QUERY);")
         assert want == ("(any-pointer: coarse) and (orientation: portrait) "
-                        "and (min-width: 700px) and (max-width: 1199px)")
+                        "and (min-width: 641px) and (max-width: 1199px)")
         assert want in queries, "TABLET_QUERY is not one of the stylesheet's media queries"
 
 
@@ -7054,7 +7070,7 @@ class TestTheTabletBranch:
 
     def test_no_control_double_tap_zooms(self):
         css = (VIEWER / "style.css").read_text()
-        block = css[css.index("@media (any-pointer: coarse) and (orientation: portrait) and (min-width: 700px) "
+        block = css[css.index("@media (any-pointer: coarse) and (orientation: portrait) and (min-width: 641px) "
                               "and (max-width: 1199px) {"):]
         assert "button, select, a, .shot, label, input, textarea { touch-action: manipulation; }" in block
 

@@ -8,7 +8,8 @@ import { DELIVERYBOX, deliveryGeometry, deliveryReason, quietCorner } from "../c
 import { PAINT } from "../core/constants.mjs";
 
 const MUTED = "#6d6455";
-const HOUSE = { twelve: PAINT.twelve, eight: PAINT.ice, four: PAINT.four, button: PAINT.ice };
+// Read as it draws: a club's houses are not all Granite's (constants' applyHouse).
+const ring = kind => ({ twelve: PAINT.twelve, eight: PAINT.ice, four: PAINT.four, button: PAINT.ice })[kind];
 const STRIPE = { fill: "#b9c9da", edge: "#8fa6bd" };
 const LINE = { hack: [PAINT.rail, 1], tee: [PAINT.iceLine, 1], hog: [PAINT.red, 1.2], centre: [PAINT.iceLine, 0.7] };
 const LEGEND_ROW = 11;
@@ -77,7 +78,7 @@ export function DeliveryChart({ g, label, fluid, className = "dlv", at }) {
           {g.paint.stripe ? <path d={g.paint.stripe.d} fill={STRIPE.fill} fillOpacity={0.28} /> : null}
           <g opacity={0.3}>
             {g.paint.house.map(r => (
-              <ellipse key={r.kind} cx={r.cx} cy={r.cy} rx={r.rx} ry={r.ry} fill={HOUSE[r.kind]} />
+              <ellipse key={r.kind} cx={r.cx} cy={r.cy} rx={r.rx} ry={r.ry} fill={ring(r.kind)} />
             ))}
           </g>
           {(g.paint.stripe?.edges || []).map((e, i) => (

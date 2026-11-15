@@ -1,13 +1,15 @@
 /* The sheet, the stones on it, and the pointer gestures that edit them. */
-import { useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   DRAG_MIN_M, PAINT, PHONE_QUERY, R, TABLET_QUERY,
-  broomMark, clampX, clampY, ghostStones, houseViewBox, isBlank, onSheet, shouldCrop, stoneAt, trackPoints,
+  broomMark, clampX, clampY, ghostStones, houseViewBox, isBlank, onSheet, shouldCrop, stoneAt, swipeStep, trackPoints,
 } from "../core/index.mjs";
 import { stoneWord } from "../core/constants.mjs";
 import * as dragStore from "../runtime/dragStore.mjs";
 import { writeBodyState } from "../runtime/bodyState.mjs";
 
+// A touch that moved less than this between down and up is a tap.
+const TAP_MAX_PX = 10;
 const phone = () => matchMedia(PHONE_QUERY).matches;
 const tabletNow = () => matchMedia(TABLET_QUERY).matches;
 
@@ -26,6 +28,7 @@ const tabletNow = () => matchMedia(TABLET_QUERY).matches;
  */
 function useHouseCrop(svgRef, { editing, watching, bodyFlags, deps }) {
   const [box, setBox] = useState({ crop: false, aspect: 0 });
+  const latest = useRef(null);
 
   useLayoutEffect(() => {
     writeBodyState(bodyFlags);
@@ -38,12 +41,40 @@ function useHouseCrop(svgRef, { editing, watching, bodyFlags, deps }) {
         aspect: r.height > 0 ? r.width / r.height : 0,
       });
     };
+    latest.current = measure;
     measure();
     // The first paint can measure a zero-height SVG.
     const raf = requestAnimationFrame(measure);
     return () => cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
+
+  /* A change of layout with nothing else changed -- a phone turned, a folding
+   * phone opened or closed, a window dragged across a breakpoint -- moves the
+   * house's box and the phone gate under a crop measured for the old one: the
+   * iPhone Duo, opened and closed again, kept the open layout's whole sheet in
+   * the phone's short band, a house an inch tall. Measured again once the new
+   * layout has been laid out: a frame after the resize, and once more when it
+   * has settled, since a fold or a turn resizes in steps and the media queries
+   * can trail the first event. */
+  useEffect(() => {
+    let raf = 0, t = 0;
+    const again = () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(t);
+      raf = requestAnimationFrame(() => latest.current?.());
+      t = setTimeout(() => latest.current?.(), 250);
+    };
+    const gates = [matchMedia(PHONE_QUERY), matchMedia(TABLET_QUERY)];
+    addEventListener("resize", again);
+    gates.forEach(g => g.addEventListener("change", again));
+    return () => {
+      removeEventListener("resize", again);
+      gates.forEach(g => g.removeEventListener("change", again));
+      cancelAnimationFrame(raf);
+      clearTimeout(t);
+    };
+  }, []);
 
   // Watching on a phone -- a view-only or review link -- shows everything in
   // play. Charting keeps the crop: its band is too short for the whole sheet
@@ -246,6 +277,7 @@ export function House({ shot, shotKey, selStone, houseMode, showTrack, readOnly,
                         placeColor, bodyFlags, cropDeps, actions }) {
   const svgRef = useRef(null);
   const drag = useRef(null);
+  const peek = useRef(null);   // a touch on the picture, before the editor
   const viewBox = useHouseCrop(svgRef, {
     editing: houseMode === "edit", watching: readOnly, bodyFlags, deps: cropDeps,
   });
@@ -256,8 +288,14 @@ export function House({ shot, shotKey, selStone, houseMode, showTrack, readOnly,
   const onPointerDown = ev => {
     // On the phone, and on the portrait iPad, the house is a picture until you
     // enter the editor: one tap cannot both open the editor and place a stone.
+    // It opens on the tap's release, not its first touch: on the phone a
+    // sideways swipe across the picture steps a rock, as it does when
+    // watching, and only a touch that stayed put opens the editor. Opened at
+    // once, every swipe across a short phone's band of house (the iPhone Duo,
+    // closed or split) landed in the editor, the video and the rocks gone
+    // behind it.
     if ((phone() || tabletNow()) && houseMode !== "edit") {
-      if (!readOnly) actions.openHouseEditor();
+      peek.current = readOnly ? null : { x: ev.clientX, y: ev.clientY };
       return;
     }
     const g = ev.target.closest?.(".stone");
@@ -290,6 +328,15 @@ export function House({ shot, shotKey, selStone, houseMode, showTrack, readOnly,
   };
 
   const onPointerUp = ev => {
+    const at = peek.current;
+    if (at) {
+      peek.current = null;
+      const dx = ev.clientX - at.x, dy = ev.clientY - at.y;
+      const step = phone() ? swipeStep(dx, dy, at.x) : 0;
+      if (step) actions.step(step);
+      else if (Math.hypot(dx, dy) < TAP_MAX_PX) actions.openHouseEditor();
+      return;
+    }
     const d = drag.current;
     if (!d) return;
     drag.current = null;
@@ -313,7 +360,7 @@ export function House({ shot, shotKey, selStone, houseMode, showTrack, readOnly,
   return (
     <svg id="house" viewBox={viewBox} aria-label="House diagram" ref={svgRef}
          onPointerDown={onPointerDown} onPointerMove={onPointerMove}
-         onPointerUp={onPointerUp}>
+         onPointerUp={onPointerUp} onPointerCancel={() => { peek.current = null; }}>
       <Defs clip="sheetClip" hatch="hatch" />
       <Sheet id="ice" />
       {showTrack && <Track shot={shot} />}

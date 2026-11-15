@@ -20,7 +20,7 @@ import {
   shotClipName, shotClipsOffered, bundledClip, currentSite, siteName, siteReadOnly, houseImageCaption, houseImageName, endChoices, switchedEnds,
   chartSwapOff, endIdentity, restPassed,
 } from "../core/index.mjs";
-import { STONE_NAME } from "../core/constants.mjs";
+import { STONE_NAME, applyHouse } from "../core/constants.mjs";
 import { accountsOn, whoIsSignedIn } from "../runtime/auth.mjs";
 import { saveSwitchedEnds } from "../runtime/switched.mjs";
 import * as store from "../runtime/overridesStore.mjs";
@@ -426,6 +426,9 @@ export function App({ doc, config, cursor, reload }) {
     return () => { removeEventListener("resize", onResize); clearTimeout(t); };
   }, [ui.houseMode, ui.sheet]);
 
+  // The rings of the house this end is played into, where the club's two
+  // houses are painted their own way (Rochester's teal and purple).
+  applyHouse(doc.houses, view.ends[ui.ei]?.end?.house);
   const shots = view.ends[ui.ei]?.shots ?? [];
   const queue = blankQueue(view).items;
 

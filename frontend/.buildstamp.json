@@ -4,7 +4,7 @@
   "flags": "3814b6394471718919220a4072fed98a4853a93360e8ea70a4896d47dc55fa9a",
   "sources": {
     "frontend/core/charts.mjs": "c4bc35fb2c57a5cc83abbca3d1586724cb17f20016e03b11384fbfe5765b6253",
-    "frontend/core/constants.mjs": "1ea88878d843ca043e69c33ba199e92b9d64db2e2dd0d7b3b54dc19c348a885e",
+    "frontend/core/constants.mjs": "78642392f41d3ed4a37f9e1abfd123dda1c61fc55d67a82c494e4fb49bfe034d",
     "frontend/core/delivery.mjs": "6cb513200b781548e0bf23447e3eb56e68dfd74c9c95756dd4e4efe19a6867ba",
     "frontend/core/flag.mjs": "4a6844417c60863444f0f270775cd845aa0160a6d13b4ed60d5c06df35120d00",
     "frontend/core/format.mjs": "5b6852a008aa5b3ac6d6b426ccaea7e02b710bfe6e633eb1725c3aef7d6a2076",
@@ -68,15 +68,15 @@
     "frontend/site/signinState.mjs": "341882fcb8e3c1e3412ca51c5e582597f078818a3b860f8beb82a3df7522a46e",
     "frontend/site/ui.jsx": "90920ede3d7eb56bf5c08a0fb06ac474f67219144a657d9afec26861205c14ec",
     "frontend/site/useAuth.js": "637bd013b9d2171273d9b04d4d12482866a9ef008b3db63329ca0dc848952118",
-    "frontend/viewer/App.jsx": "f83a360a98c0a789429fa78a8abb082d64fd864f92b7b0ce661c989659277fb3",
+    "frontend/viewer/App.jsx": "797745a007d549fcae914600fe9f6abef05cf8b1f5303ebdead7d1a229098bc6",
     "frontend/viewer/ChartPanel.jsx": "cc6dfb11f8d0b591334dd03827149703266c3e4cfb6bb953cfefea4cb7c800ef",
     "frontend/viewer/Charts.jsx": "31d5cbfa2ec2a23d36691a085970069e7c5e433c910024b8238f98c1d7f1b172",
-    "frontend/viewer/Delivery.jsx": "3207f9bdfc9d56b0bbf5222d136dde05327fd98c60a499be9269bfc51f23d1a9",
+    "frontend/viewer/Delivery.jsx": "fc036f8701ed6ab49ca4cb6245ebe4bfd4ece66dcfdbace0334fe9e9c734aa77",
     "frontend/viewer/DeliveryDialog.jsx": "e1aaa15458bb0850dcd30f77ff147991c039c5274a9d134aeb38297733425d04",
-    "frontend/viewer/Detail.jsx": "5b1af91e2415a534949c3714dc7c0a224531f0ce22e56e0ec73c0e1864c2eadd",
+    "frontend/viewer/Detail.jsx": "31c021f1f410a7324c4c431b4bf5624c4140deeda29ca7d9e175fa9ecf73fb3c",
     "frontend/viewer/EndDialog.jsx": "206c98583783cc13806a036c1852fb1890bc648b5d3b55cff4c0e4c7bebc9acb",
     "frontend/viewer/Flag.jsx": "7f2b7a7d3e63d89d1d356c257546b7c844896bce6fec4dc276dcd8a0e5a88c90",
-    "frontend/viewer/House.jsx": "a338f9972ee37301e83a5abf9a2c60d5d0fe04a257adcec5987ff962c356f538",
+    "frontend/viewer/House.jsx": "146379bb614427522181a68928242c7a15455ab0b2cdb6f528477b9204640f8b",
     "frontend/viewer/LineChart.jsx": "d764fd6bbcda3db15ce80ff9be66cfa66e3bf9fd59b08e65a9b7dded512b187f",
     "frontend/viewer/NameBox.jsx": "b3d5db36376c90674ffa7f329a092db110e27f878e3b17266816f37b883f6246",
     "frontend/viewer/Pager.jsx": "3e750b495fffda8fd24ebf00f3f0dd928b1ea2b202ad560f532643c672693df7",
@@ -93,7 +93,7 @@
     "frontend/viewer/main.jsx": "af04f91e05fda15d48cdd728938d64b0ce8ceb5a16e6a6d15f1d0f01e8a19cbe"
   },
   "outputs": {
-    "src/curling_score/service/static/site.js": "f9cb32891da732e874e5947ea846a5405da569cfdc258aa538c0f4a2f8616e07",
-    "src/curling_score/viewer/app.js": "305ab3f9e72654a5f988ff5ea4362092b560075fca01365b6955c52494eb8c1c"
+    "src/curling_score/service/static/site.js": "5c8ece2a8249b17f057c175ec873e3393fc6e063e2225bfb076547e7592f3dd5",
+    "src/curling_score/viewer/app.js": "0ec1fc474d613d7e50f291e003a77a12d0b8bea416f915da717af1124802fe3b"
   }
 }

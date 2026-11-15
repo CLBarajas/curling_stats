@@ -854,6 +854,10 @@ body[data-mode="review"] #house { cursor:default; }
    iframe must never be reparented -- see app.js's one-player invariant. */
 @media (max-width: 640px) and (min-height: 461px) {
   body { height: 100dvh; overflow: hidden; }
+  /* The video's height, which the house, the flags, the open sheet and the
+     watching panes all hang from. 16:9 of the full width, except on a short
+     phone (below): one variable so they move together. */
+  body { --vid: 56.25vw; }
   /* The shell is a fixed-height page; the report is not. It is a sibling of
      main in normal flow, taller than any phone screen, and `overflow:hidden`
      on the body would leave everything past the first screenful unreachable
@@ -887,9 +891,14 @@ body[data-mode="review"] #house { cursor:default; }
      its two labels are 44px touch targets -- 52px left them 32px and they
      overflowed into the header above and the menu's padding below. #menu's
      top follows it: 48 + 64. */
-  body[data-menu="open"] #playback { display: flex; top: 48px; height: 64px;
-    align-items: center; gap: 14px; }
-  body[data-menu="open"] #menu { display: grid; top: 112px; gap: 8px;
+  /* 112px since the lead-in joined the two checkboxes: three controls do not
+     fit one row of a phone (385 px on the iPhone Duo, 390 on most), and the
+     third wrapped out of a 64px panel onto the menu's end picker, covering
+     it. Two rows of 44px, 4px between, the same 10px of padding: 48 + 112. */
+  body[data-menu="open"] #playback { display: flex; flex-wrap: wrap; top: 48px; height: 112px;
+    align-items: center; align-content: center; gap: 4px 14px; }
+  body[data-menu="open"] #menu { display: grid; top: 160px; gap: 8px;
+    max-height: calc(100dvh - 160px); box-sizing: border-box; overflow-y: auto;
     border-radius: 0 0 10px 10px;
     box-shadow: 0 6px 24px rgb(0 0 0 / .18); }
   #menu > * { width: 100%; height: 44px; }
@@ -929,7 +938,7 @@ body[data-mode="review"] #house { cursor:default; }
      would hide the front of the house behind the sheet. Exactly the gap
      between the video and the sheet means the tee is centred in what the user
      actually sees. A short phone then gets a tighter crop, not a hidden one. */
-  #houseCard { position: fixed; top: calc(48px + 56.25vw); bottom: 256px;
+  #houseCard { position: fixed; top: calc(48px + var(--vid)); bottom: 256px;
                left: 0; right: 0; overflow: hidden; }
   #houseCard .tools { display: none; }
   #house { height: 100%; }
@@ -965,7 +974,7 @@ body[data-mode="review"] #house { cursor:default; }
      and reachable at the header's height, not the collapsed band's. */
   body[data-house="edit"] #flags { z-index: 9; top: 48px; }
 
-  #flags { position: fixed; top: calc(48px + 56.25vw); left: 0; right: 0;
+  #flags { position: fixed; top: calc(48px + var(--vid)); left: 0; right: 0;
            z-index: 3; max-height: 92px; overflow-y: auto; padding: 0 10px; }
   #flags:empty { display: none; }
 
@@ -1011,7 +1020,7 @@ body[data-mode="review"] #house { cursor:default; }
      state that floats it over the video's lower edge, which is the only free
      space -- the video and the sheet are contiguous. */
   body[data-sheet="open"] #renumbered {
-    bottom: calc(100dvh - 48px - 56.25vw + 12px);
+    bottom: calc(100dvh - 48px - var(--vid) + 12px);
   }
 
   /* #chart #sheetHandle, not #sheetHandle: the 44px touch-target rule below is
@@ -1063,7 +1072,7 @@ body[data-mode="review"] #house { cursor:default; }
   /* the sheet's open state: it grows to cover the house down to the video,
      scrolls its own content, and reveals the full form */
   body[data-sheet="open"] #chart {
-    height: calc(100dvh - 48px - 56.25vw);
+    height: calc(100dvh - 48px - var(--vid));
     overflow-y: auto;
     overscroll-behavior: contain;
   }
@@ -1153,7 +1162,7 @@ body[data-mode="review"] #house { cursor:default; }
   body:has(#viewOnly) #src { display: none; }
   body:has(#viewOnly) header > h1 { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-  #watch { position: fixed; left: 0; right: 0; top: calc(48px + 56.25vw);
+  #watch { position: fixed; left: 0; right: 0; top: calc(48px + var(--vid));
            bottom: 0; z-index: 4; flex-direction: column;
            background: var(--bg); }
 
@@ -1224,7 +1233,7 @@ body[data-mode="review"] #house { cursor:default; }
      the house is the point of the tab, and where the rock stopped is on
      Detail already. */
   body[data-watch="house"] main > #houseCard { display: block; position: fixed;
-    left: 0; right: 0; top: calc(48px + 56.25vw + 56px);
+    left: 0; right: 0; top: calc(48px + var(--vid) + 56px);
     bottom: calc(52px + env(safe-area-inset-bottom));
     z-index: 8; margin: 0; border: 0; border-radius: 0;
     background: var(--panel); padding: 6px 12px; }
@@ -1325,6 +1334,17 @@ body[data-mode="review"] #house { cursor:default; }
    under 521px of page: a report from Firefox for iOS, which keeps both an
    address bar and a toolbar on screen, saw this page as "the desktop view".
    Page zoom shrinks the page's height the same way. */
+/* A short phone held upright: a folding phone closed (the iPhone Duo, 382 x
+   580), a small phone, a split screen. At 16:9 of the full width the video
+   leaves the house a sliver between itself and the sheet -- 60 px at 580 --
+   so here the video keeps a little over half of what the header and the sheet
+   leave, never under 120 px, and sits centred at that height. From about 700
+   px tall the full-width video is the smaller figure and nothing changes. */
+@media (max-width: 640px) and (min-height: 461px) and (max-height: 700px) {
+  body { --vid: min(56.25vw, max(120px, calc((100dvh - 304px) * 0.55))); }
+  #playCard .video { width: calc(var(--vid) * 16 / 9); margin-inline: auto; }
+}
+
 @media (max-width: 640px) and (max-height: 460px) {
   main { margin-bottom: calc(84px + env(safe-area-inset-bottom)); }
   .transport { position: fixed; left: 12px; right: 12px; z-index: 5;
@@ -1502,7 +1522,7 @@ body[data-mode="review"] #house { cursor:default; }
 /* A coarse pointer held upright, 700-1199 px wide. React renders this layout's
    pieces only here (TABLET_QUERY in core/constants.mjs, byte-identical to this
    query). */
-@media (any-pointer: coarse) and (orientation: portrait) and (min-width: 700px) and (max-width: 1199px) {
+@media (any-pointer: coarse) and (orientation: portrait) and (min-width: 641px) and (max-width: 1199px) {
   /* Charting a rock with no scroll and no hover: every control is a
      fingertip, 44 px or more, and nothing is only in a tooltip. Sized from
      the board "P · Portrait" (out/mockups/ipad/mock/touch.js and P.js). */
@@ -1704,10 +1724,21 @@ body[data-mode="review"] #house { cursor:default; }
 /* The narrowest iPads (the mini, 744 px): the score row gives the sheet
    buttons' values more room. The score buttons go to 44 px wide, still a
    fingertip, and Next rock keeps its words with less padding. */
-@media (any-pointer: coarse) and (orientation: portrait) and (min-width: 700px) and (max-width: 799px) {
+@media (any-pointer: coarse) and (orientation: portrait) and (min-width: 641px) and (max-width: 799px) {
   .gbar #scoreBtns { gap: 4px; }
   .gbar #scoreBtns button { width: 44px; }
   #nextRock { padding: 0 12px; }
+}
+
+/* Narrower than any iPad: a folding phone opened and held upright (669 px on
+   the iPhone Duo; 641-699 otherwise had neither this layout nor the phone's).
+   The site's name gives its room to the end picker and the count to chart;
+   the sixteen rocks share the row with Replay, which keeps only its arrow. */
+@media (any-pointer: coarse) and (orientation: portrait) and (min-width: 641px) and (max-width: 699px) {
+  header > h1 { display: none; }
+  #shots .shot { width: calc((100vw - 114px) / 16); }
+  #replay { width: 48px; padding: 0; font-size: 0; }
+  #replay::before { content: "\21BB"; font-size: 20px; }
 }
 
 /* --- the portrait iPad's sheets (spec 2026-10-16 §6) ---------------------- */
@@ -1791,11 +1822,79 @@ body[data-mode="view"] dialog.sheet #note { pointer-events: auto; opacity: 1; }
    rules above, which they override at equal weight. The delivery's drawing is
    TABLETDELIVERYBOX / TABLETSPEEDBOX wide (App passes them), so the dialog
    takes nearly the screen's width and its texts keep their size. */
-@media (any-pointer: coarse) and (orientation: portrait) and (min-width: 700px) and (max-width: 1199px) {
+@media (any-pointer: coarse) and (orientation: portrait) and (min-width: 641px) and (max-width: 1199px) {
   #deliveryDialog { width: calc(100vw - 24px); }
   .dd-body { padding: 14px 16px 16px; }
   .dd-close { width: 44px; height: 44px; }
   #thinkingDialog .key button.linky { all: unset; cursor: pointer; color: var(--accent); min-height: 44px;
     min-width: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0 8px;
     box-sizing: border-box; font-size: 13px; }
+}
+
+/* --- a phone, or a folding phone opened, on its side ---------------------- */
+/* A coarse pointer, landscape, 641 px or wider and no taller than 600: an
+   iPhone on its side (844 x 390, 932 x 430) and the iPhone Duo opened on its
+   side (951 x 537). None of the layouts above claims these, so they drew the
+   narrow desktop page: a header wrapped onto two or three rows, mouse-sized
+   buttons, and a page that scrolled the video away to reach the house.
+   CSS only -- React renders the desktop's pieces here, exactly as on a narrow
+   window -- so it can only place and size them:
+     - the header keeps one row and scrolls sideways if it must;
+     - the page itself never scrolls; the left column (video, rocks, figures,
+       grading) scrolls under the header, and the house stays pinned beside it;
+     - the video is held to the height that leaves the rock strip and the
+       controls on the first screen;
+     - every control is a fingertip tall, and the notch's side is left clear. */
+@media (any-pointer: coarse) and (orientation: landscape) and (min-width: 641px) and (max-height: 600px) {
+  body { height: 100dvh; overflow: hidden; --hdr: 48px; --under: 150px;
+         --col: calc(100dvh - var(--hdr) - 20px); }
+  button, select, a, .shot, label, input, textarea { touch-action: manipulation; }
+
+  header { height: var(--hdr); box-sizing: border-box; flex-wrap: nowrap; gap: 8px;
+           padding: 2px max(12px, env(safe-area-inset-right)) 2px max(12px, env(safe-area-inset-left));
+           overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+  header::-webkit-scrollbar { display: none; }
+  header > * { flex-shrink: 0; }
+  header > .grow { flex-shrink: 1; min-width: 0; }
+  header > h1, header > #src { display: none; }
+  header button, header select, header a.btn { min-height: 40px; }
+
+  main { height: calc(100dvh - var(--hdr)); box-sizing: border-box; overflow-y: auto;
+         overscroll-behavior: contain; gap: 10px;
+         padding: 10px max(10px, env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom))
+                  max(10px, env(safe-area-inset-left));
+         grid-template-columns: minmax(0, 1fr) clamp(230px, 34vw, 330px);
+         grid-template-areas: "play house" "detail house" "chart house";
+         grid-template-rows: auto auto 1fr; }
+  main > .card { padding: 10px; }
+
+  /* The house: pinned for as long as the left column scrolls, its own height
+     the screen's. A sheet drawn to the hog line is taller than a phone on its
+     side, so the card scrolls within itself; the rings are at its top. */
+  #houseCard { position: sticky; top: 0; align-self: start; max-height: var(--col);
+               box-sizing: border-box; overflow-y: auto; overscroll-behavior: contain; }
+  #houseCard .muted { display: none; }
+  #houseCard .tools { gap: 8px; }
+  #houseCard .tools button, .swatchbtn { min-width: 40px; min-height: 40px; }
+
+  /* Video, then the rocks, then the buttons, all on the first screen: 150 px
+     is the strip, the transport row and the card's own padding. */
+  #playCard { display: flex; flex-direction: column; }
+  #video { width: min(100%, calc((var(--col) - var(--under)) * 16 / 9)); min-width: 0; margin-inline: auto; }
+  #playCard .shots { order: 1; flex-wrap: nowrap; gap: 3px; margin-top: 8px; }
+  #playCard .shots .shot { flex: 1 1 0; width: auto; min-width: 0; height: 40px; font-size: 14px; }
+  #playCard .transport { order: 2; margin-top: 8px; gap: 8px; }
+  #playCard .transport button { min-height: 44px; min-width: 44px; }
+  #playCard #playback { order: 3; }
+
+  /* The grading and the figures: the desktop's, a fingertip tall. */
+  .pick button, .scorebtns button, #chart button, #chart select, #chart input { min-height: 44px; }
+  .pick { gap: 8px; }
+  label.chk { min-height: 40px; }
+}
+/* A phone on its side is under 450 px tall, and with both rows kept the video
+   is a third of the screen: there the first screen keeps the video and the
+   rocks, and the buttons are a short scroll below them. */
+@media (any-pointer: coarse) and (orientation: landscape) and (min-width: 641px) and (max-height: 450px) {
+  body { --under: 72px; }
 }

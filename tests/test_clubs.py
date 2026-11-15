@@ -71,3 +71,19 @@ class TestTheSheetOnTheTimeline:
         monkeypatch.setattr(cli.analyze_mod, "write", lambda doc, out: tmp_path / "timeline.json")
         assert cli.main(["analyze", "u", "--out", str(tmp_path)]) == 0
         assert seen["club"] is clubs.GRANITE and seen["info"] is None
+
+
+class TestTheHousesOnThePage:
+    def test_rochester_s_sheets_paint_their_two_houses_the_way_the_ice_is(self):
+        # A and C: teal 12-foot on the top (left) house, purple on the bottom;
+        # B and D the other way round. Each house's 4-foot is the other's 12.
+        for name in ("rochester", "rochester-c"):
+            h = clubs.CLUBS[name].house_display
+            assert h["top"]["twelve"] == h["bottom"]["four"] != h["top"]["four"] == h["bottom"]["twelve"]
+        a = clubs.CLUBS["rochester"].house_display
+        for name in ("rochester-b", "rochester-d"):
+            assert clubs.CLUBS[name].house_display == {"top": a["bottom"], "bottom": a["top"]}
+
+    def test_a_club_painted_as_granite_says_nothing(self):
+        assert clubs.GRANITE.house_display is None
+

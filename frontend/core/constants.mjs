@@ -37,6 +37,19 @@ export function applyStones(stones) {
   return out;
 }
 
+/* Take a timeline's `houses` block for the house an end is played into
+ * ("top" or "bottom"): PAINT's two ring colours follow it. No block, a house
+ * it leaves out, or a colour that is not "#rrggbb" is Granite's green and
+ * blue. Called while rendering, before anything draws a ring: the rings read
+ * PAINT as they draw, never at import. */
+const RING_DEFAULT = { twelve: PAINT.twelve, four: PAINT.four };
+export function applyHouse(houses, house) {
+  const h = houses?.[house] || {};
+  for (const k of ["twelve", "four"])
+    PAINT[k] = /^#[0-9a-fA-F]{6}$/.test(h[k] || "") ? h[k] : RING_DEFAULT[k];
+  return { twelve: PAINT.twelve, four: PAINT.four };
+}
+
 /* Metres. The SVG user-space unit is a metre, which is why none of the
  * geometry below needs a scale factor. */
 export const R = {
@@ -80,7 +93,7 @@ export const WIDE_QUERY = "(min-width: 1500px)";
  * between a phone and a desktop. React decides what renders by this;
  * style.css lays it out by the same string, byte for byte -- a test asserts
  * it, as for WIDE_QUERY. */
-export const TABLET_QUERY = "(any-pointer: coarse) and (orientation: portrait) and (min-width: 700px) and (max-width: 1199px)";
+export const TABLET_QUERY = "(any-pointer: coarse) and (orientation: portrait) and (min-width: 641px) and (max-width: 1199px)";
 
 /* The phone viewer's bottom tabs, in order: the one table the tab bar draws
  * and a link's #tab= is checked against. */

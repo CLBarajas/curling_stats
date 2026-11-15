@@ -6,7 +6,8 @@ import { DESKBOX, DESKDELIVERYBOX, deliveryGeometry, deliveryReadable, deliveryR
 import { PAINT } from "../core/constants.mjs";
 import { DeliveryChart, deliveryLabel, dotColours } from "./Delivery.jsx";
 
-const RING = { twelve: PAINT.twelve, eight: PAINT.ice, four: PAINT.four, button: PAINT.ice };
+// Read as it draws: a club's houses are not all Granite's (constants' applyHouse).
+const ring = kind => ({ twelve: PAINT.twelve, eight: PAINT.ice, four: PAINT.four, button: PAINT.ice })[kind];
 const GOLD = "#a07a00";      // the rock's path: #e8b400 is unreadable on the ice
 const MUTED = "#6d6455";
 const LINE = { hog: [PAINT.red, 1.2] };
@@ -22,7 +23,7 @@ export function Strip({ shot, shapes: s, label, fluid, className = "dstrip", at 
     <svg className={className} {...(fluid ? {} : { width: s.w, height: s.h })} viewBox={`0 0 ${s.w} ${s.h}`}
          role="img" aria-label={label} {...(at ? { x: at.x, y: at.y } : {})}>
       {s.rings.map((r, i) => (
-        <ellipse key={i} cx={r.cx} cy={r.cy} rx={r.rx} ry={r.ry} fill={RING[r.kind]} fillOpacity={0.55} />
+        <ellipse key={i} cx={r.cx} cy={r.cy} rx={r.rx} ry={r.ry} fill={ring(r.kind)} fillOpacity={0.55} />
       ))}
       {s.lines.map((l, i) => {
         const [stroke, width] = LINE[l.kind] ?? PAINTED;

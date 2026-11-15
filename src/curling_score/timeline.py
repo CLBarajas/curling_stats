@@ -525,7 +525,7 @@ def format_check(games, fmt) -> dict:
 
 def build_document(video_id, url, sheet, duration_s, calibration, games,
                    window=None, processing_version=None, fmt=None, check=None,
-                   stones=None) -> dict:
+                   stones=None, houses=None) -> dict:
     """The whole analysis, ready to write to ``timeline.json``.
 
     ``window`` is the ``(start_s, end_s)`` of the stream that was analysed when
@@ -536,7 +536,8 @@ def build_document(video_id, url, sheet, duration_s, calibration, games,
     document without one reads as fours. ``stones`` is a club's
     ``stone_display``: what the red and yellow classes are called and painted
     there. Written only where a club has one; every key in the document stays
-    "red" and "yellow".
+    "red" and "yellow". ``houses`` is a club's ``house_display``, the paint of
+    its top and bottom houses, written likewise only where a club has one.
     """
     games = [dict(g) for g in games]
     for game in games:
@@ -571,6 +572,8 @@ def build_document(video_id, url, sheet, duration_s, calibration, games,
     }
     if stones:
         doc["stones"] = stones
+    if houses:
+        doc["houses"] = houses
     fmt = fmt or format_mod.FOURS
     if fmt is not format_mod.FOURS:
         # Written only when it says something: a four-player timeline stays

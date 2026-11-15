@@ -78,6 +78,11 @@ class Club:
     # and everything downstream calls them red and yellow; this only changes
     # what a page says and draws (`timeline.build_document`'s ``stones``).
     stone_display: dict | None = None
+    # How each house is painted, where it is not Granite's green 12-foot and
+    # blue 4-foot: "top"/"bottom" -> {"twelve", "four"}, each "#rrggbb". Only
+    # what a page draws (`timeline.build_document`'s ``houses``); the paint the
+    # calibration looks for is each panel's `HousePaint`.
+    house_display: dict | None = None
     # A wall scoreboard with a camera of its own at a fixed place in the
     # composite (`game/fixedboard.py`), read there instead of being found by
     # its markers. None: Granite's board, found and read by `game/scoreboard.py`.
@@ -236,6 +241,7 @@ DALLAS = Club("dallas", (
 # centre line is painted. The stones are red and blue.
 _RCC_TEAL = ((70, 18, 60), (99, 140, 240))
 _RCC_PURPLE = ((112, 18, 60), (145, 140, 240))
+_RCC_TEAL_HEX, _RCC_PURPLE_HEX = "#4f9a8c", "#6a5a94"
 ROCHESTER = Club("rochester", (
     ("top", Panel("bottom", HousePaint(twelve_ft=(_RCC_TEAL,), four_ft=(_RCC_PURPLE,)))),
     ("bottom", Panel("bottom", HousePaint(twelve_ft=(_RCC_PURPLE,), four_ft=(_RCC_TEAL,)))),
@@ -263,6 +269,10 @@ ROCHESTER = Club("rochester", (
     # half its boxes were not stones (rcc2).
     overhead_model="rcc1b.pt", side_model="rcc2b.pt",
     stone_display={"yellow": {"name": "Blue", "color": "#4d8ef0"}},
+    # The stream's paint is pale (teal #749088, purple #5e5374 on sheet A's
+    # overheads); these keep the hues and deepen them enough to read on a page.
+    house_display={"top": {"twelve": _RCC_TEAL_HEX, "four": _RCC_PURPLE_HEX},
+                   "bottom": {"twelve": _RCC_PURPLE_HEX, "four": _RCC_TEAL_HEX}},
     # Each sheet has a profile of its own below: its paint, how its cameras
     # see it and where its board hangs differ. The channel says which.
     sheet_channels={"UCC4CItKubmNVSPpsDInEcWQ": ("A", "rochester"),
@@ -287,6 +297,7 @@ _RCC_PURPLE_END = ((112, 18, 100), (145, 140, 240))
 ROCHESTER_BD = replace(
     ROCHESTER, name="rochester-bd",
     panels=(("top", ROCHESTER.panels[1][1]), ("bottom", ROCHESTER.panels[0][1])),
+    house_display={"top": ROCHESTER.house_display["bottom"], "bottom": ROCHESTER.house_display["top"]},
     end_cameras={"top": ("left", replace(ROCHESTER.end_cameras["bottom"][1], ring=(_RCC_PURPLE_END,))),
                  "bottom": ("right", ROCHESTER.end_cameras["top"][1])},
     # Each sheet's board camera frames its board differently: rochester-b and
