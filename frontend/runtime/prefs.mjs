@@ -12,6 +12,7 @@ export const DEFAULTS = {
   showTrack: true, autoplay: true, leadIn: VIDEO_LEAD_IN_S, pauseAfterShot: false,
   clockOpen: false, clockBars: false,
   tab: "detail", // the phone viewer's bottom tab: "house" | "detail" | "delivery" | "timing"
+  teamNumbers: false, // rocks numbered 1-8 for each team, not 1-16 through the end
   sheetMin: false, // the phone's charting sheet folded down to its handle and the rock buttons
 };
 

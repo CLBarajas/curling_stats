@@ -18,7 +18,7 @@ import {
   renumberNotice, shotVideoTime, overrides as edit,
   stepRock, parseHash, formatHash, cursorFromHash, withHash, teamNames, typedTeamNames, shortOf,
   shotClipName, shotClipsOffered, bundledClip, currentSite, siteName, siteReadOnly, houseImageCaption, houseImageName, endChoices, switchedEnds,
-  chartSwapOff, endIdentity, restPassed,
+  chartSwapOff, endIdentity, restPassed, rockNumber,
 } from "../core/index.mjs";
 import { STONE_NAME, applyHouse } from "../core/constants.mjs";
 import { accountsOn, whoIsSignedIn } from "../runtime/auth.mjs";
@@ -567,6 +567,10 @@ export function App({ doc, config, cursor, reload }) {
                style={{ width: 58 }} defaultValue={ui.leadIn}
                onChange={e => setPref({ leadIn: Math.max(0, +e.target.value || 0) })} />s
       </label>
+      <label className="chk" title="Number each team's rocks 1 to 8, not the end's 1 to 16">
+        <input type="checkbox" id="teamNumbers" checked={ui.teamNumbers}
+               onChange={e => setPref({ teamNumbers: e.target.checked })} /> 1–8 by team
+      </label>
     </div>
   );
   const flags = <Flags doc={doc} shot={shot} trimmed={ui.ei === 0 ? doc.chart?.ends_trimmed : 0} />;
@@ -577,7 +581,7 @@ export function App({ doc, config, cursor, reload }) {
              className={`shot ${sh.color} ${isBlank(sh) ? "unknown" : ""} `
                       + `${isGraded(sh) ? "graded" : ""} ${i === ui.si ? "sel" : ""}`}
              onClick={() => goTo(ui.ei, i)}>
-          {isBlank(sh) ? "?" : sh.number}
+          {isBlank(sh) ? "?" : rockNumber(shots, i, ui.teamNumbers)}
         </div>
       ))}
     </div>
@@ -898,7 +902,7 @@ function Header({ doc, config, ui, status, queue, view, shot, dispatch, goTo, de
       {desk && shot ? (
         <span id="rockName">
           <span className={`chip ${shot.color}${isBlank(shot) ? " unknown" : ""}`}>
-            {isBlank(shot) ? "?" : shot.number}
+            {isBlank(shot) ? "?" : rockNumber(view.ends[ui.ei]?.shots, ui.si, ui.teamNumbers)}
           </span>
           <span className="rn-label">{shot.label || `shot ${shot.number}`}</span>
         </span>
@@ -908,7 +912,7 @@ function Header({ doc, config, ui, status, queue, view, shot, dispatch, goTo, de
                 title="Still being played: each end appears here once it is over">live</span>
         : null}
       <span id="stoneChip" className={shot ? `chip ${shot.color} ${isBlank(shot) ? "unknown" : ""}` : "chip"}
-            hidden={!shot}>{shot ? (isBlank(shot) ? "?" : shot.number) : ""}</span>
+            hidden={!shot}>{shot ? (isBlank(shot) ? "?" : rockNumber(view.ends[ui.ei]?.shots, ui.si, ui.teamNumbers)) : ""}</span>
       {/* The phone's header says which end this is, and is the way to another:
           a native <select> laid over the words, invisible, so the tap opens
           the phone's own picker (as the watching layout's pager does). Until

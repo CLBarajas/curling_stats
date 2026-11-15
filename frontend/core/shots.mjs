@@ -87,3 +87,15 @@ export function openGroupFor(type, openGroup) {
   if (TYPES.some(t => t.group === openGroup && t.id === type)) return openGroup;
   return TYPES.find(t => t.id === type)?.group ?? null;
 }
+
+/* What a rock is called on its chip. An end's rocks are numbered 1 to 16 as
+ * they are thrown; ``byTeam`` counts each team's own, 1 to 8, the way a
+ * curler names them ("red's fifth"), a blank in the team's turn counted with
+ * the rest. The rock's own number where it has no colour to count by. */
+export function rockNumber(shots, i, byTeam) {
+  const s = shots?.[i];
+  if (!s) return "";
+  if (!byTeam || !s.color) return s.number;
+  return shots.slice(0, i + 1).filter(x => x.color === s.color).length;
+}
+

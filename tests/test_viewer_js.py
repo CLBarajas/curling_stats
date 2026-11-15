@@ -7115,3 +7115,26 @@ class TestRetryingAClip:
     def test_the_dialog_uses_it(self):
         src = (Path(__file__).resolve().parents[1] / "frontend/viewer/ShotClip.jsx").read_text()
         assert "clipRetryOffered(got, currentSite())" in src
+
+
+class TestRockNumbers:
+    """A chip's number: 1 to 16 through the end, or each team's own 1 to 8."""
+
+    SHOTS = [{"number": n, "color": "red" if n % 2 else "yellow"} for n in range(1, 17)]
+    # Straight from the core: the fixture the other tests import re-exports
+    # only what the old viewer's tests poked.
+    IMPORT = ("const { rockNumber } = await import("
+              + repr((Path(__file__).resolve().parents[1] / "frontend/core/shots.mjs").as_uri()) + ");")
+
+    def test_through_the_end_it_is_the_rock_s_own_number(self):
+        got = run_js(self.IMPORT + f"const s = {json.dumps(self.SHOTS)}; out(s.map((_, i) => rockNumber(s, i, false)));")
+        assert got == list(range(1, 17))
+
+    def test_by_team_each_colour_counts_its_own_one_to_eight(self):
+        got = run_js(self.IMPORT + f"const s = {json.dumps(self.SHOTS)}; out(s.map((_, i) => rockNumber(s, i, true)));")
+        assert got == [n for n in range(1, 9) for _ in (0, 1)]
+
+    def test_a_team_that_threw_twice_running_still_counts_its_own(self):
+        shots = [{"number": 1, "color": "red"}, {"number": 2, "color": "red"}, {"number": 3, "color": "yellow"}]
+        assert run_js(self.IMPORT + f"const s = {json.dumps(shots)}; out(s.map((_, i) => rockNumber(s, i, true)));") == [1, 2, 1]
+
