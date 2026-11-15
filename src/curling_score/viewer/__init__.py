@@ -96,6 +96,26 @@ class ViewerHandler(http.server.SimpleHTTPRequestHandler):
                 Path(tmp).unlink(missing_ok=True)
                 raise
 
+    def send_head(self):
+        # "Not modified" only for the very file the browser holds. The stock
+        # handler answers 304 whenever its file is no newer than the copy the
+        # browser has -- right for one file that changes, wrong for a port
+        # pointed at another run: an older run's timeline.json is "not
+        # modified since" a newer run's, and the browser went on showing the
+        # game it had (sheet D, with sheet A being served).
+        since = self.headers.get("If-Modified-Since")
+        if since is not None:
+            path = self.translate_path(self.path)
+            if os.path.isdir(path):
+                path = os.path.join(path, "index.html")
+            try:
+                same = since.strip() == self.date_time_string(int(os.stat(path).st_mtime))
+            except OSError:
+                same = False
+            if not same:
+                del self.headers["If-Modified-Since"]
+        return super().send_head()
+
     def end_headers(self):
         # Every file is asked for again each time, answered 304 where it has
         # not changed: without this a browser keeps `timeline.json` and
