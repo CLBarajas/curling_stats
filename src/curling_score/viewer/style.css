@@ -846,6 +846,8 @@ body[data-mode="review"] #house { cursor:default; }
 /* Watch mode is a phone layout only. At every other width the read-only
    surfaces keep the desktop three-column page they have always had. */
 #watch { display: none; }
+/* The phone header's end picker: the phone block shows it. */
+#endQuick { display: none; }
 
 /* --- phone -------------------------------------------------------------- */
 /* A fixed-height shell, not a scrolling page: the video pins at the top, the
@@ -925,6 +927,16 @@ body[data-mode="review"] #house { cursor:default; }
                width: 40px; height: 40px; border-radius: 7px; font-size: 15px;
                font-weight: 650; font-variant-numeric: tabular-nums;
                border: 1px solid transparent; }
+  /* The end, named beside the rock, and the picker for another (App.jsx). */
+  #endQuick { display: inline-flex; align-items: center; position: relative; flex: 0 0 auto;
+              min-height: 40px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px;
+              font-family: var(--display); font-size: 15px; font-weight: 700; white-space: nowrap; }
+  #endQuick .eq-of, #endQuick .eq-caret { font-weight: 400; color: var(--muted); }
+  #endQuick select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0;
+                     font-size: 16px; cursor: pointer; }
+  body[data-mode="view"] #endQuick, body[data-mode="review"] #endQuick { display: none; }
+  /* ...so the menu need not carry the same picker twice. */
+  #menu > #end { display: none; }
   #stoneChip.red { background: var(--red); color: #fff; }
   #stoneChip.yellow { background: var(--yellow); color: #1a1a1a; }
   #stoneChip.unknown { background: var(--panel); color: var(--warn);

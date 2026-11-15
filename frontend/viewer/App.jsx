@@ -909,6 +909,21 @@ function Header({ doc, config, ui, status, queue, view, shot, dispatch, goTo, de
         : null}
       <span id="stoneChip" className={shot ? `chip ${shot.color} ${isBlank(shot) ? "unknown" : ""}` : "chip"}
             hidden={!shot}>{shot ? (isBlank(shot) ? "?" : shot.number) : ""}</span>
+      {/* The phone's header says which end this is, and is the way to another:
+          a native <select> laid over the words, invisible, so the tap opens
+          the phone's own picker (as the watching layout's pager does). Until
+          this the end was named nowhere on the charting phone, and changing
+          it was two taps into the menu. CSS shows it on the phone only. */}
+      <label id="endQuick" title="Go to another end">
+        <span className="eq-text">End {view.game.ends[ui.ei]?.number ?? "?"}
+          <span className="eq-of"> of {view.game.ends.length}</span>
+          <span className="eq-caret" aria-hidden="true"> ▾</span></span>
+        <select aria-label="Go to end" value={ui.ei} onChange={e => goTo(+e.target.value, 0)}>
+          {view.game.ends.map((e, i) => (
+            <option key={i} value={i}>{`End ${e.number} (${e.house})`}</option>
+          ))}
+        </select>
+      </label>
       <span className="grow" />
       <button id="blanks" className={`pill ${queue.length || unplaced ? "bad" : "ok"}`}
               title="Jump to the next shot needing charting"
