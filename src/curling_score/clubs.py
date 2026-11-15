@@ -52,6 +52,11 @@ class Club:
     # How long after its far hog crossing a guard nothing saw arrive is read
     # (`longguards.AFTER_FAR_S` where None).
     guards_after_far_s: float | None = None
+    # Count an end's throws from the end camera behind the thrower, the whole
+    # end and not only its gaps (`analyze`'s census): for overheads that show
+    # the house alone, where a guard is in neither and a knocked stone looks
+    # like an arrival.
+    throws_from_end_camera: bool = False
     one_game_per_stream: bool = False
     scheduled_ends: int | None = None
     panel_layout: PanelLayout | None = None
@@ -265,6 +270,10 @@ ROCHESTER = Club("rochester", (
     # after the far hog line: Go_JOSxJPsQ end 3's blue guard crossed at 38:26,
     # was still sliding at 3.7 m at 38:32 and stopped at 2.4 m by 38:36.
     guards_from_long_m=1.7, guards_after_far_s=10.0,
+    # The throwing camera alone showed all 16 deliveries, in turn, of ends the
+    # overheads made 12 to 15 of with a knocked or cleared stone or two counted
+    # in: sheet D 11/9 end 4, sheet C 11/11 end 2, sheet A 11/4 end 5.
+    throws_from_end_camera=True,
     # One channel a sheet, @RCCStreamingSheetA to D, each stream one game.
     # Everything here was measured on sheet A (UCC4CItKubmNVSPpsDInEcWQ);
     # sheet C (UCsAcOSWFFZDKce1DL5umYOA) is painted the same way. Its own

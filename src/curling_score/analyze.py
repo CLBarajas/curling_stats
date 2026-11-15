@@ -369,6 +369,9 @@ class EndContext:
     far_hog_from_long: bool = False
     guards_from_long_m: float | None = None
     guards_after_far_s: float | None = None
+    # Count each end's throws from the end camera behind the thrower
+    # (clubs.Club.throws_from_end_camera).
+    throws_from_end_camera: bool = False
 
 
 @dataclass
@@ -780,16 +783,19 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
         progress(f"    end {end.number}: {n_followed} throw(s) the overhead could not "
                  f"place, placed from the long camera")
 
-    def by_the_rules(unaccounted):
-        cands = (sorted(arrivals + unaccounted, key=lambda d: d.t_enter)
-                 if unaccounted else arrivals)
+    def by_the_rules(unaccounted, only=None):
+        offered = (sorted(arrivals + unaccounted, key=lambda d: d.t_enter)
+                   if unaccounted else arrivals)
+        # ``only``: the candidates the throwing camera's count vouches for
+        # (the census, below). What was offered is still what is audited.
+        cands = offered if only is None else [d for d in offered if id(d) in only]
         # An end holds its format's deliveries thrown strictly in turn, so
         # a longer or doubled candidate list is provably wrong. Without
         # this an over-counted end does not merely score badly, it cannot
         # be built at all: the last shot has no thrower.
         # Stones moved while the house is cleared after the last shot
         # look like deliveries in every way but one: nothing released them.
-        return cands, fit.fit_end(fit.drop_clearing(
+        return offered, fit.fit_end(fit.drop_clearing(
             cands, seq, fit.released_ids(thrown_by, unaccounted) | vouched,
             per_end=fmt.delivered_per_end),
             # An arrival the long camera's search saw thrown stands as a
@@ -817,13 +823,19 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
     # stays inside the end's own window either way.
     limit = (fmt.delivered_per_end if game.ends and end.number == game.ends[-1].number
              else LOST_SEARCH_MAX)
-    if throw_view is not None and 0 < short <= limit:
+    # The census: where the club says so, the camera behind the thrower counts
+    # the whole end, short or not. Its slides are the end's throws when they
+    # come to an end's worth in turn -- then a stone the overhead saw move with
+    # no throw behind it, knocked or cleared, is not a rock of the end.
+    census = ctx.throws_from_end_camera and throw_view is not None
+    seen = []
+    if throw_view is not None and (census or 0 < short <= limit):
         stages.mark("rules")
         lost = sidereleases.lost_rocks(
             path, throw_view,
             kept=kept, releases=releases, thrown_by=thrown_by, arrivals=arrivals,
             house_frames=seq, t0=since, t1=end.end_s, vouched=vouched,
-            per_end=fmt.delivered_per_end)
+            per_end=fmt.delivered_per_end, whole=census, seen=seen if census else None)
         stages.mark("lost")
         if lost:
             progress(f"    end {end.number}: {len(lost)} rock(s) the overhead saw at "
@@ -838,12 +850,30 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
                     progress(f"    end {end.number}: {n_placed} of them placed from the camera "
                              f"facing the house")
             unaccounted = unaccounted + lost
-            deliveries, kept = by_the_rules(unaccounted)
         elif vouched:
             # Only arrivals the rules had already: the search saw them thrown.
             progress(f"    end {end.number}: {len(vouched)} arrival(s) the long camera "
                      f"saw thrown")
-            deliveries, kept = by_the_rules(unaccounted)
+        only = None
+        if census and sidereleases.census_is_clean(seen, fmt.delivered_per_end):
+            thrown = fit.released_ids(thrown_by, unaccounted) | vouched
+            n = sum(1 for d in arrivals + unaccounted if id(d) in thrown)
+            # Held to exactly an end's worth: a throw whose colour one camera
+            # misread is explained away without a candidate of its own, and
+            # then the count says less than the rules already do.
+            if n == fmt.delivered_per_end:
+                only = thrown
+                progress(f"    end {end.number}: the throwing camera counts all "
+                         f"{n} throws, in turn; "
+                         f"{len(arrivals) + len(unaccounted) - n} stone(s) moved with no throw behind them")
+            else:
+                progress(f"    end {end.number}: the throwing camera counts "
+                         f"{len(seen)} throws in turn, {n} of them matched: not used to drop any")
+        elif census:
+            progress(f"    end {end.number}: the throwing camera counts {len(seen)} slide(s), "
+                     f"not an end in turn")
+        if lost or vouched or only is not None:
+            deliveries, kept = by_the_rules(unaccounted, only=only)
     # Audit what detection actually offered, before the rules trim
     # it -- that is the honest measure of how well detection did.
     audit = endcheck.check(deliveries, per_end=fmt.delivered_per_end,
@@ -1460,6 +1490,7 @@ def analyze(url, root=None, shot_fps=SHOT_FPS, progress=log.info,
         scheduled_ends=club.scheduled_ends if club.one_game_per_stream else None,
         far_hog_from_long=club.far_hog_from_long, guards_from_long_m=club.guards_from_long_m,
         guards_after_far_s=club.guards_after_far_s,
+        throws_from_end_camera=club.throws_from_end_camera,
     )
     out_games = build_games(
         ctx, games, phase=phase,

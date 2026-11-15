@@ -535,3 +535,42 @@ class TestAnalyzeSearchesAShortEnd:
         assert "0 < short <= limit" in guard and "LOST_SEARCH_MAX" in src[:i_lost][-700:]
         call = src[i_lost:][:200]
         assert "throw_view" in call and "throw_view = (sideviews.get(hogtime.CAMERA_FOR[OTHER_HOUSE[end.house]])" in src
+
+
+def _slide(t, n):
+    from types import SimpleNamespace
+    return SimpleNamespace(t_ref=t, n=n)
+
+
+class TestOneStoneReadInTwoColours:
+    """Rochester sheet D 11/9 end 6 rock 1: a blue slide of 13 sightings and a
+    "red" of 6 beside it, 0.9 s apart."""
+
+    def test_the_weaker_colour_s_slide_is_the_stronger_s_echo(self):
+        blue, red = ("yellow", _slide(5296.2, 13)), ("red", _slide(5297.1, 6))
+        assert S.without_echoes([blue, red]) == [blue]
+
+    def test_two_as_strong_as_each_other_are_left_alone(self):
+        found = [("yellow", _slide(100.0, 12)), ("red", _slide(100.8, 10))]
+        assert S.without_echoes(found) == found
+
+    def test_two_of_a_colour_are_left_alone(self):
+        found = [("red", _slide(100.0, 13)), ("red", _slide(100.9, 5))]
+        assert S.without_echoes(found) == found
+
+    def test_slides_seconds_apart_are_left_alone(self):
+        found = [("yellow", _slide(100.0, 13)), ("red", _slide(100.0 + S.SAME_SLIDE_S, 5))]
+        assert S.without_echoes(found) == found
+
+
+class TestTheThrowingCamerasCount:
+    def test_an_end_s_worth_in_turn_is_clean(self):
+        seen = [(("yellow", "red")[k % 2], _slide(60.0 * k, 13)) for k in range(16)]
+        assert S.census_is_clean(seen, 16)
+        assert not S.census_is_clean(seen[:15], 16)
+
+    def test_two_of_a_colour_running_is_not(self):
+        seen = [(("yellow", "red")[k % 2], _slide(60.0 * k, 13)) for k in range(16)]
+        seen[5] = ("yellow", seen[5][1])
+        assert not S.census_is_clean(seen, 16)
+

@@ -454,8 +454,34 @@ def rock_times(kept, thrown_by, lags=()) -> list[tuple[float, str]]:
     return out
 
 
+# One stone read in the other colour for part of its slide leaves a second,
+# shorter slide beside the real one: the same moment, the other colour, at most
+# this share of its sightings. Rochester sheet D 11/9 end 6 rock 1: blue, 13
+# sightings over 5.35 m, with a "red" of 6 over 2.67 m 0.9 s after it -- and
+# the two, being closer than two throws ever are, were both taken for stones
+# being moved and the end's first rock was lost.
+ECHO_SHARE = 0.6
+
+
+def without_echoes(found):
+    """``found`` -- ``(colour, Slide)`` pairs -- less each slide that is another
+    colour's echo: within SAME_SLIDE_S of a slide of the other colour with
+    enough more sightings (`ECHO_SHARE`). Two of a colour, or two as strong
+    as each other, are left for the caller to judge."""
+    return [(c, s) for c, s in found
+            if not any(oc != c and abs(o.t_ref - s.t_ref) < SAME_SLIDE_S and s.n <= ECHO_SHARE * o.n
+                       for oc, o in found)]
+
+
+def census_is_clean(seen, per_end) -> bool:
+    """Whether the throwing camera's slides are an end as the rules know one:
+    ``per_end`` of them, the colours strictly in turn."""
+    colours = [c for c, _s in seen]
+    return len(colours) == per_end and all(a != b for a, b in zip(colours, colours[1:]))
+
+
 def lost_rocks(video, view, *, kept, releases, thrown_by, arrivals, house_frames,
-               t0, t1, scan=None, vouched=None, per_end=None) -> list:
+               t0, t1, scan=None, vouched=None, per_end=None, whole=False, seen=None) -> list:
     """The rocks an end the rules left short lost at both ends of the sheet, as
     deliveries ``fit.fit_end`` can place; [] when there are none.
 
@@ -479,6 +505,12 @@ def lost_rocks(video, view, *, kept, releases, thrown_by, arrivals, house_frames
 
     ``per_end`` is the format's rocks an end, for `search_windows`.
 
+    ``whole`` searches the end from its turnaround to ``t1``, not only where
+    `search_windows` says a rock could be hiding, and ``seen``, a list, then
+    receives every slide a throw could have made, ``(colour, Slide)`` in time
+    order: the throwing camera's own count of the end, for a club whose
+    overheads lose too much to say where the gaps are (`analyze`'s census).
+
     ``scan`` is ``(video, view, t0, t1) -> {colour: [(t, y, x)]}``,
     ``scan_points`` by default. A decode or detector error costs the end only
     what the search would have added.
@@ -488,8 +520,9 @@ def lost_rocks(video, view, *, kept, releases, thrown_by, arrivals, house_frames
     if scan is None:
         scan = scan_points
     lags = [d.t_enter - r.t for r, d in thrown_by.items()]
-    windows = search_windows(rock_times(kept, thrown_by, lags), t0 + TURNAROUND_S, t1,
-                             per_end=per_end)
+    windows = ([(t0 + TURNAROUND_S, t1)] if whole and t1 > t0 + TURNAROUND_S else
+               search_windows(rock_times(kept, thrown_by, lags), t0 + TURNAROUND_S, t1,
+                              per_end=per_end))
     found = []
     for a, b in windows:
         try:
@@ -502,11 +535,14 @@ def lost_rocks(video, view, *, kept, releases, thrown_by, arrivals, house_frames
                       if s.span_m >= LOST_MIN_SPAN_M and s.y_max_m >= LOST_MIN_Y_MAX_M
                       and s.speed_m_s >= LOST_MIN_SPEED_M_S
                       and s.max_gap_s <= LOST_MAX_GAP_S]
+    found = without_echoes(found)
     # Two throws are never within R.MIN_SEPARATION_S of each other, so slides
     # that close together are stones being moved, and none of them is a throw.
     found = [(c, s) for c, s in found
              if not any(o is not s and abs(o.t_ref - s.t_ref) < R.MIN_SEPARATION_S
                         for _c, o in found)]
+    if seen is not None:
+        seen.extend(sorted(found, key=lambda f: f[1].t_ref))
     known = [r.t for r in releases]
     new = [_as_release(color, s) for color, s in sorted(found, key=lambda f: f[1].t_ref)
            if all(abs(s.t_ref - t) >= R.MIN_SEPARATION_S for t in known)]
