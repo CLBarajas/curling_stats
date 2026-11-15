@@ -9,6 +9,7 @@ rule (never hold a whole end of decoded panels in memory) in a single place.
 from __future__ import annotations
 
 import logging
+import math
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import nullcontext
@@ -104,10 +105,31 @@ def detect_end(path, setup, end, fps: float, detector=None,
     return detect_span(path, setup, start, end.end_s, fps, detector, use_cache)
 
 
+def on_grid(start_s: float, fps: float) -> float:
+    """``start_s`` moved back to the last whole step of ``fps`` counted from
+    the start of the video, so the frames a span samples are the same frames
+    wherever the span begins.
+
+    A span is sampled every ``1 / fps`` from its own start (`frames.window`),
+    and its start is wherever the previous end's last rock came to rest
+    (`analyze.run_up_from`). So anything that moved that rest by a thirtieth of
+    a second moved every frame of the next end with it, and a stone through
+    the house in three seconds was then tracked whole or in pieces by which
+    frames happened to fall on it. Rochester sheet A 11/4: end 5's first red
+    and end 6's first two rocks were found in one run and lost in the next
+    with the code unchanged between them, the only difference where the end
+    before had closed; sheet B 10/28 end 8's first rock went the same way.
+    """
+    return max(0.0, math.floor(start_s * fps + 1e-6) / fps)
+
+
 def detect_span(path, setup, start_s: float, end_s: float, fps: float,
                 detector=None, use_cache: bool = True):
-    """Detections at ``fps`` across ``[start_s, end_s]`` for one panel."""
+    """Detections at ``fps`` across ``[start_s, end_s]`` for one panel, the
+    start moved back onto the video's own grid (`on_grid`)."""
     from curling_score.detect import rocks
+
+    start_s = on_grid(start_s, fps)
 
     def produce():
         out = []
@@ -150,6 +172,7 @@ def detect_spans(path, specs, end_s: float, detector=None):
     """
     from curling_score.detect import rocks
 
+    specs = [(setup, on_grid(start, fps), fps) for setup, start, fps in specs]
     out = [[] for _ in specs]
     batches = [[] for _ in specs]
     behind = _DetectBehind(detector) if detector is not None else None
