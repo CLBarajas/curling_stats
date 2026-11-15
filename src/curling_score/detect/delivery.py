@@ -314,8 +314,14 @@ class _Track:
         dt = t - self.ts[-1]
         if dt > 0:
             # Smooth the velocity so one noisy frame cannot fling the gate open.
-            self.vx = 0.5 * self.vx + 0.5 * (x - self.xs[-1]) / dt
-            self.vy = 0.5 * self.vy + 0.5 * (y - self.ys[-1]) / dt
+            # A track's second sighting has nothing to smooth with: averaged
+            # with the zero it began at, a stone in full flight is guessed at
+            # half its speed and the next sighting falls outside the gate
+            # (Rochester sheet B 10/28 end 8's first rock, through the house
+            # in three seconds and split into pieces the rules then refused).
+            w = 0.0 if len(self.ts) == 1 else 0.5
+            self.vx = w * self.vx + (1 - w) * (x - self.xs[-1]) / dt
+            self.vy = w * self.vy + (1 - w) * (y - self.ys[-1]) / dt
         self.ts.append(t)
         self.xs.append(x)
         self.ys.append(y)

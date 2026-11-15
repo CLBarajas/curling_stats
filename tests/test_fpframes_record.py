@@ -1,3 +1,4 @@
+import pytest
 from curling_score.detect import delivery
 from curling_score.detect.rocks import Detection
 from curling_score.fpframes import Settings, settings
@@ -188,3 +189,15 @@ def test_side_box_swallows_a_view_that_cannot_say_its_width():
     rec = recorder()
     rec.side_box(object(), 3.0, 400.0, 500.0, 30.0, 0.8, color=None, pass_="follow")
     assert rec.pending() == []
+
+
+def test_a_track_s_second_sighting_sets_its_speed_outright():
+    """Rochester sheet B 10/28 end 8's first rock: averaged with the zero a
+    track starts at, a stone in full flight was guessed at half its speed."""
+    tr = track("yellow", [(0.0, 0.0, 2.0), (0.2, 0.0, 1.6)])
+    assert tr.vy == pytest.approx(-2.0)
+    assert tr.predict(0.4)[1] == pytest.approx(1.2)
+    # From the third on it is smoothed, as before.
+    tr.add(0.4, 0.0, 1.4)
+    assert tr.vy == pytest.approx(-1.5)
+
