@@ -858,6 +858,11 @@ body[data-mode="review"] #house { cursor:default; }
      watching panes all hang from. 16:9 of the full width, except on a short
      phone (below): one variable so they move together. */
   body { --vid: 56.25vw; }
+  /* The sheet's height, which the house and the rock strip sit on: the
+     charting buttons' 256px, or 112px folded down to its grip over the bar
+     (32 + the bar's 80). One variable, as --vid is, so they move together. */
+  body { --sheet: 256px; --strip: 40px; }
+  body[data-sheet="min"] { --sheet: calc(112px + env(safe-area-inset-bottom)); }
   /* The shell is a fixed-height page; the report is not. It is a sibling of
      main in normal flow, taller than any phone screen, and `overflow:hidden`
      on the body would leave everything past the first screenful unreachable
@@ -931,14 +936,27 @@ body[data-mode="review"] #house { cursor:default; }
 
   /* the video keeps its own box at the top; the house fills the gap down to
      the sheet, and #chart is lifted out of flow onto the bottom of the screen */
-  #playCard .shots { display: none; }
+  /* The end's rocks, one tap each, in a row on top of the sheet: without it
+     the only way to another rock was one step at a time. Sixteen share the
+     width, so each is narrow (21px on a 385px phone) but 32px tall, and the
+     arrows and the swipe are still there. Not while the form is open (it
+     covers the house to the video), not in the stone editor, and not on a
+     view-only page, which has its own pager. */
+  #playCard .shots { display: flex; flex-wrap: nowrap; gap: 2px; position: fixed; z-index: 4;
+                     left: 0; right: 0; bottom: var(--sheet); height: var(--strip);
+                     box-sizing: border-box; margin: 0; padding: 4px 8px; background: var(--bg); }
+  #playCard .shots .shot { flex: 1 1 0; width: auto; min-width: 0; height: 32px; font-size: 12px; }
+  body[data-sheet="open"] #playCard .shots,
+  body[data-house="edit"] #playCard .shots,
+  body[data-mode="view"] #playCard .shots,
+  body[data-mode="review"] #playCard .shots { display: none; }
   /* No min-height: with one it would be over-constrained, `bottom` would be
      dropped, and the box would grow down behind the sheet -- so the measured
      box and the visible box would differ and the crop, centred in the former,
      would hide the front of the house behind the sheet. Exactly the gap
      between the video and the sheet means the tee is centred in what the user
      actually sees. A short phone then gets a tighter crop, not a hidden one. */
-  #houseCard { position: fixed; top: calc(48px + var(--vid)); bottom: 256px;
+  #houseCard { position: fixed; top: calc(48px + var(--vid)); bottom: calc(var(--sheet) + var(--strip));
                left: 0; right: 0; overflow: hidden; }
   #houseCard .tools { display: none; }
   #house { height: 100%; }
@@ -979,7 +997,7 @@ body[data-mode="review"] #house { cursor:default; }
   #flags:empty { display: none; }
 
   #chart { position: fixed; left: 0; right: 0; bottom: 0; z-index: 4;
-           height: 256px; border-radius: 16px 16px 0 0; border: 0;
+           height: var(--sheet); border-radius: 16px 16px 0 0; border: 0;
            border-top: 1px solid var(--line); background: var(--panel);
            box-shadow: 0 -3px 14px rgb(0 0 0 / .08);
            padding: 0 12px calc(84px + env(safe-area-inset-bottom));
@@ -1008,7 +1026,7 @@ body[data-mode="review"] #house { cursor:default; }
      four declarations by name to do it. */
   #renumbered { display: block; position: fixed; z-index: 6;
                 width: auto; height: auto; overflow: visible; clip-path: none;
-                left: 12px; right: 12px; bottom: 268px;
+                left: 12px; right: 12px; bottom: calc(var(--sheet) + var(--strip) + 12px);
                 background: var(--ink); color: var(--bg); font-size: 13px;
                 line-height: 1.35; border-radius: 9px; padding: 10px 12px;
                 box-shadow: 0 2px 12px rgb(0 0 0 / .22); }
@@ -1031,7 +1049,7 @@ body[data-mode="review"] #house { cursor:default; }
      visible target; the sheet also opens from the chips and the form below. */
   #chart #sheetHandle { display: block; width: 100%; height: 32px;
                         min-height: 32px; border: 0;
-                        background: none; padding: 0; }
+                        background: none; padding: 0; touch-action: none; }
   #sheetHandle .grip { display: block; width: 36px; height: 4px; margin: 0 auto;
                        border-radius: 2px; background: var(--line); }
 
@@ -1091,6 +1109,8 @@ body[data-mode="review"] #house { cursor:default; }
   /* #endBox too: the peek has no room for it, and what it would render into
      is the 84px of padding under the fixed transport bar -- where a tap beside
      a transport button landed on a swap label and saved a swap. */
+  /* Folded down: the grip alone, over the bar. */
+  body[data-sheet="min"] #chart > *:not(#sheetHandle) { display: none; }
   body[data-sheet="peek"] #chart #typeList,
   body[data-sheet="peek"] #chart #missReason,
   body[data-sheet="peek"] #chart #note,
@@ -1341,7 +1361,7 @@ body[data-mode="review"] #house { cursor:default; }
    leave, never under 120 px, and sits centred at that height. From about 700
    px tall the full-width video is the smaller figure and nothing changes. */
 @media (max-width: 640px) and (min-height: 461px) and (max-height: 700px) {
-  body { --vid: min(56.25vw, max(120px, calc((100dvh - 304px) * 0.55))); }
+  body { --vid: min(56.25vw, max(120px, calc((100dvh - 48px - var(--sheet) - var(--strip)) * 0.55))); }
   #playCard .video { width: calc(var(--vid) * 16 / 9); margin-inline: auto; }
 }
 

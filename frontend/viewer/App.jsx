@@ -96,7 +96,7 @@ export function App({ doc, config, cursor, reload }) {
     const saved = savedView?.ends[cursor.ei]?.shots[cursor.si] ? cursor : null;
     return {
       gi: 0, ei: 0, si: 0, selStone: null, placeColor: "red", openGroup: null,
-      sheet: "peek", houseMode: "", menu: undefined, reporting: false, flagging: null, playing: null,
+      sheet: prefs.sheetMin ? "min" : "peek", houseMode: "", menu: undefined, reporting: false, flagging: null, playing: null,
       naming: null, clipping: null, delivering: null, thinking: false, ending: null, prefs: false,
       notice: null,
       following: true,
@@ -261,8 +261,18 @@ export function App({ doc, config, cursor, reload }) {
     setType: id => patch({ shot_type: id, shot_type_source: "manual" }),
     selectStone: i => dispatch({ type: "stone", i }),
     openHouseEditor: () => dispatch({ type: "set", patch: { houseMode: "edit" } }),
-    toggleSheet: () => dispatch({ type: "set",
-      patch: { sheet: ui.sheet === "open" ? "peek" : "open" } }),
+    // The handle's tap: folded away comes back, and otherwise it opens and
+    // shuts the full form as it always has.
+    toggleSheet: () => (ui.sheet === "min" ? actions.stepSheet(1) : dispatch({ type: "set",
+      patch: { sheet: ui.sheet === "open" ? "peek" : "open" } })),
+    // The handle dragged: down a step (open, the charting buttons, folded
+    // away) or up one. Folded away is the person's to keep (prefs): someone
+    // watching a game back wants the house, not the grading.
+    stepSheet: d => {
+      const order = ["min", "peek", "open"];
+      const to = order[Math.max(0, Math.min(2, order.indexOf(ui.sheet) + d))];
+      if (to !== ui.sheet) setPref({ sheet: to, sheetMin: to === "min" });
+    },
     setClockOpen: open => setPref({ clockOpen: open }),
     setClockBars: bars => setPref({ clockBars: bars }),
     commitStones: stones => patch({ stones, state_known: true }),

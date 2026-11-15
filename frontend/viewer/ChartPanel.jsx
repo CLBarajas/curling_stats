@@ -584,6 +584,36 @@ export function EndBox({ view, cursor, config, actions, compact }) {
   );
 }
 
+/* The phone sheet's grip. A tap opens and shuts the form, as before; a drag
+ * down folds the sheet a step (the form, the charting buttons, nothing but the
+ * grip) and a drag up brings it back a step. On a short phone -- the iPhone
+ * Duo closed is 580 px tall -- the charting buttons took the half of the
+ * screen the house needed, with no way to put them away. */
+const SHEET_DRAG_PX = 18;
+function SheetHandle({ sheet, onTap, onStep }) {
+  const from = useRef(null);
+  const dragged = useRef(false);
+  return (
+    <button id="sheetHandle" aria-expanded={String(sheet !== "min")} aria-controls="chart"
+            onPointerDown={e => {
+              from.current = e.clientY; dragged.current = false;
+              // A mouse lets go wherever it has got to; the grip keeps the gesture.
+              try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* an old browser: a tap still works */ }
+            }}
+            onPointerUp={e => {
+              const y0 = from.current; from.current = null;
+              if (y0 === null || Math.abs(e.clientY - y0) < SHEET_DRAG_PX) return;
+              dragged.current = true;
+              onStep(e.clientY > y0 ? -1 : 1);
+            }}
+            onPointerCancel={() => { from.current = null; }}
+            onClick={() => { if (dragged.current) { dragged.current = false; return; } onTap(); }}>
+      <span className="grip" />
+      <span className="sr">{sheet === "min" ? "Show the charting buttons" : "Expand the chart panel"}</span>
+    </button>
+  );
+}
+
 export function ChartPanel({ view, shot, shotKey, cursor, ui, config, series, here,
                              notice, actions }) {
   const { items } = blankQueue(view);
@@ -591,10 +621,7 @@ export function ChartPanel({ view, shot, shotKey, cursor, ui, config, series, he
     x => shot && identity(x) !== identity(shot)) ?? [];
   return (
     <aside className="card" id="chart">
-      <button id="sheetHandle" aria-expanded={String(ui.sheet === "open")}
-              aria-controls="chart" onClick={actions.toggleSheet}>
-        <span className="grip" /><span className="sr">Expand the chart panel</span>
-      </button>
+      <SheetHandle sheet={ui.sheet} onTap={actions.toggleSheet} onStep={actions.stepSheet} />
 
       {/* Rendered in every mode. `body[data-mode="review"] #grading` is what
           hides it, and a rule cannot hide an element that is not there. */}

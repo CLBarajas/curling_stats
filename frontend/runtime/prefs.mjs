@@ -12,6 +12,7 @@ export const DEFAULTS = {
   showTrack: true, autoplay: true, leadIn: VIDEO_LEAD_IN_S, pauseAfterShot: false,
   clockOpen: false, clockBars: false,
   tab: "detail", // the phone viewer's bottom tab: "house" | "detail" | "delivery" | "timing"
+  sheetMin: false, // the phone's charting sheet folded down to its handle and the rock buttons
 };
 
 /* The lead-in has counted back from the release since 2026-10-02, and from the
