@@ -238,6 +238,12 @@ class TestClearingTheHouse:
         found, tail, frames, released = self.end_with_tail()
         assert fit.drop_clearing(found + [tail], frames, released) == found
 
+    def test_a_stone_the_second_pass_found_among_the_clearing_is_dropped_too(self):
+        # Rochester sheet C 11/11 end 6: a blue kicked out three seconds after
+        # the hammer stopped, found by the gap search and kept as the last rock.
+        found, tail, frames, released = self.end_with_tail(tail_reason="gap-search")
+        assert fit.drop_clearing(found + [tail], frames, released) == found
+
     def test_a_released_last_shot_is_kept(self):
         found, tail, frames, released = self.end_with_tail(tail_released=True)
         assert fit.drop_clearing(found + [tail], frames, released)[-1] is tail

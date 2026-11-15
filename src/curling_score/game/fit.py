@@ -208,7 +208,10 @@ def fit_end(deliveries, per_end: int = C.STONES_PER_END,
 # full end seventeen long and pushed out its real first shot). Both appeared
 # when a better overhead model saw stones among the players' feet that ds11a
 # had not; the rules, not the detector, have to hold the line.
-CLEARING_REASONS = frozenset({"left-view", "house-remove"})
+# "gap-search": the second pass finds a stone kicked out among the players as
+# readily as the first does (Rochester sheet C 11/11 end 6: a blue at 1:33:44,
+# three seconds after the hammer came to rest, kept as the end's last rock).
+CLEARING_REASONS = frozenset({"left-view", "house-remove", "gap-search"})
 # At most this many stones left in the house once it stops. A cleared house
 # is empty; one straggler is allowed for a stone still being pushed.
 CLEARING_HOUSE_MAX = 1
