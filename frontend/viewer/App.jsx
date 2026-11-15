@@ -925,11 +925,16 @@ function Header({ doc, config, ui, status, queue, view, shot, dispatch, goTo, de
                   patch: { menu: ui.menu === "open" ? "" : "open" } })}>⋯</button>
       )}
       {wide && ui.menu === "open" ? (
-        <div id="more" onClick={() => dispatch({ type: "set", patch: { menu: "" } })}>
+        <div id="more" onClick={e => { if (!e.target.closest("select")) dispatch({ type: "set", patch: { menu: "" } }); }}>
           {downloadBtn}{playedBtn}{teamsBtn}{clipBtn}
         </div>
       ) : null}
-      <div id="menu" onClick={() => dispatch({ type: "set", patch: { menu: "" } })}
+      {/* A tap on a button shuts the menu; a tap on the end picker must not.
+          Shutting hides the <select> under its own native picker, and iOS
+          Safari then takes the picker away before an end can be chosen: the
+          menu flashed shut and nothing changed. Choosing an end shuts it
+          (onChange), as before. */}
+      <div id="menu" onClick={e => { if (!e.target.closest("select")) dispatch({ type: "set", patch: { menu: "" } }); }}
            onChange={() => dispatch({ type: "set", patch: { menu: "" } })}>
         {tablet ? null : endSel}
         <CopyButton id="copyLink" title="Copy a link to this rock" label="Copy link"
