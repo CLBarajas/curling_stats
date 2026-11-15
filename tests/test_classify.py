@@ -306,3 +306,39 @@ class TestHoggedButCrossedTheFarHogLine:
     def test_a_far_crossing_with_no_time_does_not_count(self):
         far = split_mod.FarCrossing(t=None)
         assert classify.classify(self._hogged(), None, far=far)[0] == classify.HOGGED
+
+
+class TestAHoggedStoneCarriedThroughTheHouse:
+    """Rochester sheet D 11/9, end 1 rock 1: hogged, then walked down the
+    sheet and out through the house, where the overhead took it for a throw
+    that ran through."""
+
+    def through(self, t_enter):
+        return delivery(reason="left-view", came_to_rest=False, track=(),
+                        t_enter=t_enter, t_rest=t_enter + 3.0, entry_y_m=2.0)
+
+    def far(self, t):
+        from types import SimpleNamespace
+        return SimpleNamespace(t=t)
+
+    def test_faster_after_the_far_hog_line_than_down_the_sheet_is_hogged(self):
+        d = self.through(94.63)
+        assert classify.carried_off(d, t_release=67.6, far=self.far(90.96))
+        assert classify.classify(d, None, t_release=67.6, far=self.far(90.96))[0] == classify.HOGGED
+
+    def test_a_takeout_that_ran_through_is_not(self):
+        # Sheet D end 2 rock 5: hog line to hog line in 9.5 s, then 2.6 s more.
+        d = self.through(112.1)
+        assert not classify.carried_off(d, t_hog=100.0, far=self.far(109.5))
+
+    def test_a_slow_draw_thrown_through_is_not(self):
+        # Sheet D end 7 rock 1: 19.0 s between the lines, 4.8 s to the overhead.
+        d = self.through(123.8)
+        assert not classify.carried_off(d, t_hog=100.0, far=self.far(119.0))
+
+    def test_without_both_legs_timed_nothing_is_said(self):
+        d = self.through(94.63)
+        assert not classify.carried_off(d, t_release=67.6, far=None)
+        assert not classify.carried_off(d, far=self.far(90.96))
+        assert not classify.carried_off(d, t_release=67.6, far=self.far(94.5))   # 0.13 s: no leg to time
+

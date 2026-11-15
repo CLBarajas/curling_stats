@@ -79,7 +79,45 @@ def _changed(delta) -> bool:
     return bool(delta.get("removed") or delta.get("moved"))
 
 
-def classify(delivery, house_delta=None, *, t_hog=None, v_hog=None, far=None):
+# A stone on its own only slows. From the throwing end to the far hog line it
+# averages 22 m over the seconds it took; from that line to where the overhead
+# picks it up, the last 4 m, it can only be going slower than that average.
+# One that covers them faster did not get there by itself: it was hogged and
+# pushed or carried out through the house. Rochester sheet D 11/9, end 1 rock
+# 1: 23.4 s from its release to the far hog line (1.03 m/s), then walked to the
+# overhead's edge at 1.20 m/s, a ratio of 1.17, where the twenty rocks that
+# left by the back of the four games' houses on their own ran 0.22 to 0.93.
+CARRIED_SPEED_RATIO = 1.05
+HOG_TO_HOG_M = C.TEE_TO_TEE_M - 2 * C.TEE_TO_HOGLINE_M
+# A release is read a metre or two short of the hog line. Two is the long side,
+# which makes the first leg faster and so the test harder to meet.
+RELEASE_TO_HOG_M = 2.0
+CARRIED_MIN_LEG_S = 0.5
+
+
+def carried_off(delivery, *, t_hog=None, t_release=None, far=None) -> bool:
+    """Whether a stone seen passing through the house was hogged and carried
+    there, not thrown there: it went faster after the far hog line than it had
+    averaged down the sheet (`CARRIED_SPEED_RATIO`). False wherever either leg
+    cannot be timed."""
+    t_far = getattr(far, "t", None)
+    t_enter, y_enter = getattr(delivery, "t_enter", None), getattr(delivery, "entry_y_m", None)
+    if t_far is None or t_enter is None or y_enter is None:
+        return False
+    if t_hog is not None:
+        t0, down = t_hog, HOG_TO_HOG_M
+    elif t_release is not None:
+        t0, down = t_release, HOG_TO_HOG_M + RELEASE_TO_HOG_M
+    else:
+        return False
+    before, after = t_far - t0, t_enter - t_far
+    last = C.TEE_TO_HOGLINE_M - y_enter
+    if before < CARRIED_MIN_LEG_S or after < CARRIED_MIN_LEG_S or last <= 0:
+        return False
+    return (last / after) > CARRIED_SPEED_RATIO * (down / before)
+
+
+def classify(delivery, house_delta=None, *, t_hog=None, v_hog=None, far=None, t_release=None):
     """Return ``(category, confidence)`` for one delivery.
 
     ``house_delta`` is the before/after diff from :func:`shots.house_delta`;
@@ -129,6 +167,10 @@ def classify(delivery, house_delta=None, *, t_hog=None, v_hog=None, far=None):
     # shots do not have one -- those fall to the takeout, which is the commoner
     # way to end up here, at a confidence that admits it was not measured.
     if delivery.reason == "left-view" or rest_y <= C.THROUGH_BACK_Y_M:
+        # ...or it was hogged, and what went through the house was a player
+        # clearing it away (`carried_off`).
+        if carried_off(delivery, t_hog=t_hog, t_release=t_release, far=far):
+            return HOGGED, CONF_CLEAR_REST
         sp = split.long_split(delivery, t_hog=t_hog, v_hog=v_hog, far=far)
         if sp is None:
             return FLASHED, CONF_BOUNDARY
@@ -163,4 +205,5 @@ def classify_shot(shot):
     return classify(shot.delivery, shot.house_delta,
                     t_hog=hogtime.crossing(shot),
                     v_hog=hogtime.speed_at_hog(shot),
-                    far=fartime.crossing(shot))
+                    far=fartime.crossing(shot),
+                    t_release=getattr(getattr(shot, "release", None), "t", None))
