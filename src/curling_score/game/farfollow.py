@@ -70,6 +70,8 @@ SEED_MIN_Y_M = 7.5
 # band's edge at 5.82), so neither was followed -- one ran through the house,
 # the other stopped a corner guard 3 m out -- and both were charted hogged.
 END_SEED_BAND_M = 1.6
+# Fewer sightings than this is no track (`read_outcome` wants three to say anything).
+MIN_PATH = 3
 PARKED_S = 1.0
 SEED_BY_S = 26.0                # after the release
 ON_SHEET_X_M = 2.2
@@ -181,6 +183,14 @@ def _restarted(path):
     for i, (t, y, v) in enumerate(sp):
         if v > NEAR_STOP_M_S:
             continue
+        # A stop is something a stone seen moving did. An end camera's first
+        # boxes of a stone sit on its picture's edge, cut by it, and read the
+        # same place twice before the stone is whole: Rochester sheet D 11/9,
+        # end 4 rocks 2 and 10 each "stopped" at 5.39 m for a quarter second on
+        # the way to a guard at 3.2 m, were taken for hogs being pushed on, and
+        # so were charted hogged.
+        if not any(v0 > NEAR_STOP_M_S for _t0, _y0, v0 in sp[:i]):
+            continue
         k = i + offset
         _t, x0, y0 = path[k]
         rest = sp[i + 1:]
@@ -250,6 +260,14 @@ def _follow_on(samples, t_release, **kw):
     time it lost a stone that was still on its way (`_lost_moving`). A stone
     that stopped short stays lost: one moving later is somebody else's."""
     path = _follow(samples, t_release, **kw)
+    # A seed nothing followed was not the stone: one faint box at the view's
+    # edge, a boot or a broom head, a moment before the stone itself came in.
+    # Rochester sheet D 11/9 end 5 rock 8: seeded on a 0.44 box at 6.67 m half
+    # a second before the stone appeared at 6.80 m beside it and slid to a
+    # guard just over the hog line. Look again from the next frame.
+    while 0 < len(path) < MIN_PATH:
+        later = [(t, dets) for t, dets in samples if t > path[0][0]]
+        path = _follow(later, t_release, **kw)
     while _lost_moving(path):
         later = [(t, dets) for t, dets in samples if t > path[-1][0]]
         more = _follow(later, t_release, **kw)
@@ -286,7 +304,7 @@ def read_outcome(samples, t_release, *, seed_min_y_m=SEED_MIN_Y_M) -> Outcome | 
     # for a long camera a hog from earlier in the end not yet moved off: DFW's
     # sit at 8-11 m, and the follower took one for the throw and stayed on it.
     path = _follow_on(samples, t_release, seed_min_y_m=seed_min_y_m, parked=_parked(samples))
-    if len(path) < 3:
+    if len(path) < MIN_PATH:
         return None
     k = _restarted(path)
     if k is not None:
