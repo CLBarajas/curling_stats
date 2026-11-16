@@ -234,7 +234,11 @@ def _follow(samples, t_release, seed_min_y_m=SEED_MIN_Y_M, parked=()):
         px, py = lx + vx * dt, ly + vy * dt
         gate_x = min(GATE_X_MAX_M, GATE_X_MIN_M + GATE_X_PER_S * dt + abs(vx) * dt * 0.6)
         gate_y = max(GATE_Y_MIN_M, abs(vy) * dt * 0.6 + 0.4)
-        near = [d for d in dets if abs(d[0] - px) <= gate_x and abs(d[1] - py) <= gate_y]
+        # Never a stone that sat there as the window opened: after a couple of
+        # seconds behind the sweepers the gate is a metre and a half deep, and
+        # in a full house something parked is always inside it.
+        near = [d for d in dets if abs(d[0] - px) <= gate_x and abs(d[1] - py) <= gate_y
+                and not _is_parked(d, parked)]
         if not near:
             continue
         x, y = min(near, key=lambda d: math.hypot(d[0] - px, d[1] - py))[:2]
@@ -242,6 +246,64 @@ def _follow(samples, t_release, seed_min_y_m=SEED_MIN_Y_M, parked=()):
         vy = 0.5 * vy + 0.5 * (y - ly) / dt
         path.append((t, x, y))
     return path
+
+
+def _is_parked(d, parked) -> bool:
+    return any(abs(d[0] - px) <= STAY_X_M and abs(d[1] - py) <= STAY_Y_M for px, py in parked)
+
+
+# A stone lost in play is looked for where it stopped: along the way it was
+# followed, this far either side of it across the sheet and up to this far
+# past its last sighting, among stones seen there for at least this long.
+SETTLE_X_M = 0.5
+SETTLE_Y_M = 1.2
+SETTLE_S = 2.0
+SETTLE_CELL_M = 0.25
+
+
+def _found_again(path, samples, parked):
+    """``path`` ending on the stone where it stopped, when the follower lost
+    it in play and still moving. A draw's last metres are behind its sweepers:
+    the follower coasts on at the pace it last saw, takes a boot or a broom
+    head a little further on for it, and the stone is by then at rest behind
+    them. Rochester sheet A 11/4 end 7 rock 15: followed to 4.0 m, then onto
+    the sweepers at 3.5, 2.9 and 1.5 m, with the stone at rest at 3.8 m from
+    three seconds on -- a guard, charted hogged.
+
+    The stone is one that was not there as the window opened, seen in one
+    place for SETTLE_S after the follower's last sighting, on the way the
+    follower came. The path is cut back to where it stops and its sightings
+    there are added; `read_outcome` still decides whether it stayed."""
+    if len(path) < MIN_PATH or path[-1][2] > IN_PLAY_MAX_Y_M:
+        return path
+    if any(_still_from(path, i) is not None for i in range(len(path))):
+        return path
+    lt, _lx, ly = path[-1]
+    top = max(p[2] for p in path)
+
+    def on_the_way(d):
+        if not ly - SETTLE_Y_M <= d[1] <= top:
+            return False
+        # Across the sheet, against the path where it was at that depth.
+        x_there = min(path, key=lambda p: abs(p[2] - d[1]))[1]
+        return abs(d[0] - x_there) <= SETTLE_X_M
+
+    cells = {}
+    for t, dets in samples:
+        if t <= lt:
+            continue
+        for d in dets:
+            if on_the_way(d) and not _is_parked(d, parked):
+                key = (round(d[0] / SETTLE_CELL_M), round(d[1] / SETTLE_CELL_M))
+                cells.setdefault(key, []).append((t, d[0], d[1]))
+    stayed = [pts for pts in cells.values() if pts[-1][0] - pts[0][0] >= SETTLE_S]
+    if not stayed:
+        return path
+    here = max(stayed, key=len)
+    y_stop = float(np.median([p[2] for p in here]))
+    # What the follower took beyond where the stone stopped was not the stone.
+    kept = [p for p in path if p[2] >= y_stop - STOPPED_Y_M]
+    return kept + here if len(kept) >= 1 else path
 
 
 def _lost_moving(path) -> bool:
@@ -274,7 +336,7 @@ def _follow_on(samples, t_release, **kw):
         if not more or more[0][2] > path[-1][2] + GATE_Y_MIN_M:
             break
         path = path + more
-    return path
+    return _found_again(path, samples, kw.get("parked", ()))
 
 
 def sightings(samples, t_release, *, seed_min_y_m=SEED_MIN_Y_M):
