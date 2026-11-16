@@ -786,9 +786,15 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
     def by_the_rules(unaccounted, only=None):
         offered = (sorted(arrivals + unaccounted, key=lambda d: d.t_enter)
                    if unaccounted else arrivals)
-        # ``only``: the candidates the throwing camera's count vouches for
-        # (the census, below). What was offered is still what is audited.
-        cands = offered if only is None else [d for d in offered if id(d) in only]
+        # ``only``: the end as the throwing camera counted it (the census,
+        # below), its candidates in the order they were thrown. That order is
+        # the end: an arrival is seen a moment late or early against the one
+        # thrown after it, and sorted by arrival two of a colour then stand
+        # together and the rules drop one (Rochester sheet A 11/4 end 7 rock
+        # 2, counted and then lost). What was offered is still what is audited.
+        if only is not None:
+            return offered, list(only)
+        cands = offered
         # An end holds its format's deliveries thrown strictly in turn, so
         # a longer or doubled candidate list is provably wrong. Without
         # this an over-counted end does not merely score badly, it cannot
@@ -875,7 +881,9 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
                 extra, _n = farfollow.follow_lost(
                     extra, lambda color, t: farfollow.follow(path, dest_view, color, t))
             unaccounted = unaccounted + extra
-            only = {id(d) for d in matched if d is not None} | {id(d) for d in extra}
+            # In throw order: each slide's candidate, or the one just made for it.
+            made = iter(extra)
+            only = [m if m is not None else next(made) for m in matched]
             progress(f"    end {end.number}: the throwing camera counts all "
                      f"{len(seen)} throws, in turn; {len(extra)} had no candidate, and "
                      f"{len(arrivals) + len(unaccounted) - len(only)} stone(s) moved with no throw behind them")
