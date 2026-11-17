@@ -61,6 +61,38 @@ class TestSolve:
             endcam.solve(np.full((720, 513, 3), 225, np.uint8), RECT, PAINT, "blue")
 
 
+class TestTheWallInView:
+    """Rochester sheet B's left camera on 6IUB9KbPkpc (10/28): the wall
+    scoreboard and the strip along the back of the ice make one patch of the
+    band's colour larger than the house itself."""
+
+    def back_of_house(self):
+        return int(disc(TRUE, C.R_12FT_M)[:, 1].min())
+
+    def with_wall(self):
+        img = end_view()
+        img[:self.back_of_house() - 60] = BLUE_BGR
+        return img
+
+    def test_the_wall_is_the_largest_patch(self):
+        outer, _inner = endcam.ring_edges(self.with_wall(), PAINT)
+        assert outer[:, 1].max() < self.back_of_house()
+
+    def test_the_camera_is_still_fitted_to_the_house(self):
+        fit = endcam.solve(self.with_wall(), RECT, PAINT, "blue")
+        v = fit.view
+        assert v.hog_row == pytest.approx(TRUE.hog_row, abs=1.0)
+        assert v.tee_row == pytest.approx(TRUE.tee_row, abs=2.0)
+        assert v.centre_line[1] == pytest.approx(TRUE.centre_line[1], abs=0.005)
+        assert fit.ring_residual_m < 0.03
+
+    def test_with_no_house_the_largest_patch_s_reason_is_given(self):
+        img = np.full((720, 513, 3), 225, np.uint8)
+        img[:150] = BLUE_BGR
+        with pytest.raises(SideViewError, match="centre line|fits only|hog line"):
+            endcam.solve(img, RECT, PAINT, "blue")
+
+
 class TestTheHogLineOutOfThePicture:
     """Rochester sheet C's right camera stops a few rows short of its hog
     line: with the camera's distance given, the rings place it."""

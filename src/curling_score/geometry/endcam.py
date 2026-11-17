@@ -29,6 +29,15 @@ _ANGLE_BINS = 720
 # The ring as an end camera sees it is about three times wider than tall; the
 # angular sweep is done on a circle-ish rescale of it (at least this flat).
 _SQUASH = 3.0
+# The house is the largest patch of its band's colour in an end camera's
+# picture, except where the wall behind the sheet is in view as well.
+# Rochester sheet B's left camera sees the wall scoreboard and the strip along
+# the back of the ice in the band's colour, about as much of it as the house:
+# on 6IUB9KbPkpc (10/28) the close joined them into one patch larger than the
+# house (30,569 px against its 28,585), and no camera was fitted to them; on
+# Df66u7Sv84c (11/10), framed the same, the house was the larger by 3,000 px.
+# So where the largest patch fits no house, the next is tried.
+RING_CANDIDATES = 2
 # A fit whose 12-foot edge sits further out than this, at the median, is not one.
 MAX_RING_RESIDUAL_M = 0.05
 # On a long camera one row is ~9 cm along the sheet at the far tee (Swift
@@ -90,15 +99,18 @@ def _mask(view, bands):
     return m
 
 
-def ring_edges(view, paint: EndPaint):
-    """The outer and inner edge of the house's paint, one point per angle."""
+def ring_edges(view, paint: EndPaint, rank: int = 0):
+    """The outer and inner edge of the house's paint, one point per angle.
+
+    The house is looked for in the largest patch of the band's colour, or with
+    ``rank`` in the next largest (`RING_CANDIDATES`)."""
     colour = _mask(view, paint.ring)
     box_src = cv2.morphologyEx(colour, cv2.MORPH_CLOSE,
                                cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (25, 25)))
     n, lab, st, _ = cv2.connectedComponentsWithStats(box_src, 8)
-    if n < 2:
+    if n < 2 + rank:
         raise SideViewError("no house paint in view")
-    k = 1 + int(np.argmax(st[1:, cv2.CC_STAT_AREA]))
+    k = 1 + int(np.argsort(-st[1:, cv2.CC_STAT_AREA], kind="stable")[rank])
     x0, y0, w0, h0 = st[k, :4]
     m = colour | (_mask(view, paint.also) if paint.also else 0)
     box = np.zeros_like(m)
@@ -269,10 +281,24 @@ def solve(plate, rect, paint: EndPaint, name: str = "end", end_camera: bool = Tr
     metre long; held at the 16 m the club's other cameras measure, 4 m is
     right to a few centimetres (`out/c-right-cam/ringfit.py`).
     ``hog_from_rings`` given here forces that fit where the paint is in view,
-    to measure it."""
+    to measure it.
+
+    An end camera whose largest patch of ring colour fits no house is tried
+    again on the next (`RING_CANDIDATES`); if none fits, the first patch's
+    reason is the one given. A long camera is tried on the largest alone."""
+    first = None
+    for rank in range(RING_CANDIDATES if end_camera else 1):
+        try:
+            return _solve(plate, rect, paint, name, end_camera, hog_from_rings, rank)
+        except SideViewError as exc:
+            first = first or exc
+    raise first
+
+
+def _solve(plate, rect, paint, name, end_camera, hog_from_rings, rank) -> EndFit:
     x0, y0, w, h = rect
     view = np.ascontiguousarray(np.asarray(plate)[y0:y0 + h, x0:x0 + w])
-    outer, inner = ring_edges(view, paint)
+    outer, inner = ring_edges(view, paint, rank)
     below = int(outer[:, 1].max()) + 20
     hog, d_held = None, hog_from_rings
     if d_held is None:
