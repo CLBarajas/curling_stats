@@ -117,6 +117,9 @@ class FakeDetector:
 
 
 def serially(clip, setup, start, fps, end):
+    # A span starts on the video's own frame grid (`sequence.on_grid`), as both
+    # detection paths do: 11.3 s at 5 fps samples from 11.2 s.
+    start = sequence.on_grid(start, fps)
     return [(t, [float(img.mean())]) for t, img in F.window(clip, start, end, fps, crop=setup.rect)]
 
 

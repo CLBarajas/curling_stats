@@ -75,7 +75,7 @@ class TestTheGameSummary:
 
 class TestARecordingsGames:
     def test_a_practice_session_is_marked_and_a_game_is_not(self, monkeypatch):
-        def build_one_end(ctx, game, end, prev_end_s, board_score):
+        def build_one_end(ctx, game, end, prev_end_s, board_score, first_color=None):
             kept = 6 if game.index == 1 else 16
             return built(end.number, kept, kept, start_s=end.start_s, kept=kept), end.end_s
 

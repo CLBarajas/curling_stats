@@ -105,7 +105,7 @@ def ends_as(monkeypatch):
     test gives for its (game, end), and its score from the board it was handed."""
     counts = {}
 
-    def build_one_end(ctx, game, end, prev_end_s, board_score):
+    def build_one_end(ctx, game, end, prev_end_s, board_score, first_color=None):
         delivered, released, *kept = counts.get((game.index, end.number), (16, 16))
         out = built(end.number, delivered, released, start_s=end.start_s,
                     kept=kept[0] if kept else None)
@@ -182,7 +182,7 @@ def ends_at(monkeypatch):
     renumbered end is the same end -- recording each (game, number) it built."""
     counts, seen = {}, []
 
-    def build_one_end(ctx, game, end, prev_end_s, board_score):
+    def build_one_end(ctx, game, end, prev_end_s, board_score, first_color=None):
         delivered, released, *kept = counts.get(end.start_s, (16, 16))
         out = built(end.number, delivered, released, start_s=end.start_s,
                     kept=kept[0] if kept else None)
