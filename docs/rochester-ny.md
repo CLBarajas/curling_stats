@@ -2,7 +2,7 @@
 
 This branch, `rochester-ny`, adapts curling_stats to Rochester Curling Club's sheet streams. It's the club in Rochester, New York, not the Curling Club of Rochester in Minnesota. It's built on Will Dimmit's `dfw` branch, and anything in it is his to take.
 
-*Last updated 2026-11-17.* Every change from `dfw`: [compare `dfw...rochester-ny`](https://github.com/CLBarajas/curling_stats/compare/dfw...rochester-ny).
+*Last updated 2026-11-18.* Every change from `dfw`: [compare `dfw...rochester-ny`](https://github.com/CLBarajas/curling_stats/compare/dfw...rochester-ny).
 
 ## The streams
 
@@ -35,9 +35,9 @@ So the end cameras carry more of the load here than anywhere else in the project
 | A | `Go_JOSxJPsQ`, 2026-11-04 | 123 of 128 | The stream stops five rocks early |
 | C | `vztdzCNM2fk`, 2026-11-11 | 127 of 128 | Also charted live, during the game |
 | D | `Vu6sd-fo0PE`, 2026-11-09 | 112 of 112 | A seven-end game |
-| B | `6IUB9KbPkpc`, 2026-10-28 | 118 of 128 | An older stream layout; its left end camera can't be calibrated |
+| B | `6IUB9KbPkpc`, 2026-10-28 | 127 of 128 | An older stream layout. The 128th rock was never thrown: the game was conceded |
 
-- **Checked by eye:** every doubtful rock on sheet D, and some on A and C. B the least.
+- **Checked by eye:** every doubtful rock on sheets B and D, and some on A and C.
 - **Every hammer agrees with the scoreboard** on all four games.
 - **No harm at Granite.** Will's answer-key game (`VXU9xwmugRg`, in `validation/ground_truth.json`) scores the same on this branch as on `dfw`: all 18 deliveries he checked by eye, none of his 8 non-deliveries, and the board. His `scripts/compare_timelines.py` pairs all 208 rocks between the two. Most of the Rochester-specific work never runs there, so this shows no harm, not a gain.
 - **Tests:** the suite fails exactly the tests that fail on `dfw`, and no others. Most of those need the hosted service's packages, which aren't installed here, or are test stand-ins Will has since fixed on `main`.
