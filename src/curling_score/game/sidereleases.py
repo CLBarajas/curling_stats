@@ -333,6 +333,9 @@ LOST_MAX_GAP_S = 0.8
 # rest held four slides of both colours at 0.8-1.0 m/s, the players pushing
 # end 1's stones. The quickest turnaround in five games (27 of them) threw the
 # next rock 32.8 s after the close, the median 55 s.
+# Not the video's first end, where nothing closed: its run-up is the
+# recording's start (`analyze`), and the stream may come up as its first rock
+# slides (Rochester sheet B 10/28, 6IUB9KbPkpc: blue's, 0.7 s in).
 TURNAROUND_S = 20.0
 # Release to arrival, for an arrival with no release to time it by: the middle
 # of the 11-24 s the overhead measures.
@@ -508,15 +511,15 @@ def release_of(color, slide):
 
 def lost_rocks(video, view, *, kept, releases, thrown_by, arrivals, house_frames,
                t0, t1, scan=None, vouched=None, per_end=None, whole=False, seen=None,
-               pairs=None) -> list:
+               pairs=None, turnaround_s=TURNAROUND_S) -> list:
     """The rocks an end the rules left short lost at both ends of the sheet, as
     deliveries ``fit.fit_end`` can place; [] when there are none.
 
     ``kept`` is the end as the rules built it, ``releases`` every overhead
     release, ``thrown_by`` their pairing to ``arrivals``, the far house's
     candidates, and ``house_frames`` its detections. ``t0`` is where the end's
-    run-up begins, and the search starts TURNAROUND_S after it; it never
-    passes ``t1``. Only a slide a throw could make counts: LOST_MIN_SPAN_M
+    run-up begins, and the search starts ``turnaround_s`` after it (0 for the
+    video's first end, TURNAROUND_S after any other); it never passes ``t1``. Only a slide a throw could make counts: LOST_MIN_SPAN_M
     long, reaching LOST_MIN_Y_MAX_M, and no other slide within
     R.MIN_SEPARATION_S of it. A slide within R.MIN_SEPARATION_S of an overhead
     release is that release, whatever colour either read; one that pairs with
@@ -549,8 +552,8 @@ def lost_rocks(video, view, *, kept, releases, thrown_by, arrivals, house_frames
     if scan is None:
         scan = scan_points
     lags = [d.t_enter - r.t for r, d in thrown_by.items()]
-    windows = ([(t0 + TURNAROUND_S, t1)] if whole and t1 > t0 + TURNAROUND_S else
-               search_windows(rock_times(kept, thrown_by, lags), t0 + TURNAROUND_S, t1,
+    windows = ([(t0 + turnaround_s, t1)] if whole and t1 > t0 + turnaround_s else
+               search_windows(rock_times(kept, thrown_by, lags), t0 + turnaround_s, t1,
                               per_end=per_end))
     found = []
     for a, b in windows:

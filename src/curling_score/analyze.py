@@ -228,6 +228,20 @@ def joined_late(prev_end_s, start_s: float, recording_start_s: float = 0.0) -> b
     return prev_end_s is None and start_s - recording_start_s <= JOIN_S
 
 
+def search_turnaround(prev_end_s, since: float, recording_start_s: float = 0.0) -> float:
+    """How far past its run-up's start an end's throwing camera is searched
+    (`sidereleases.lost_rocks`): TURNAROUND_S, while the previous end's stones
+    are pushed out of this end's throwing house -- but nothing for the video's
+    first end when its run-up reaches back to the recording's first moment.
+    Nothing closed there, and the stream may come up as the end's first rock
+    slides: Rochester sheet B 10/28 (6IUB9KbPkpc), blue's 0.7 s in, and sheet
+    C 11/11 (vztdzCNM2fk), red's 9.8 s in, each left the census one throw
+    short of an end in turn."""
+    if prev_end_s is None and since <= recording_start_s:
+        return 0.0
+    return sidereleases.TURNAROUND_S
+
+
 def run_up_from(prev_end_s, start_s: float, *, crossed_games: bool = False) -> float:
     """Where an end's run-up begins: the moment the previous end closed.
 
@@ -842,7 +856,8 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
             kept=kept, releases=releases, thrown_by=thrown_by, arrivals=arrivals,
             house_frames=seq, t0=since, t1=end.end_s, vouched=vouched,
             per_end=fmt.delivered_per_end, whole=census, seen=seen if census else None,
-            pairs=pairs)
+            pairs=pairs,
+            turnaround_s=search_turnaround(prev_end_s, since, ctx.recording_start_s))
         stages.mark("lost")
         if lost:
             progress(f"    end {end.number}: {len(lost)} rock(s) the overhead saw at "

@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from curling_score import analyze, timeline
+from curling_score.game import sidereleases
 
 
 class TestWriteIsAtomic:
@@ -116,6 +117,24 @@ class TestAStreamThatJoinedAnEndLate:
     def test_a_window_s_start_is_the_recording_s(self):
         assert analyze.joined_late(None, 3610.0, recording_start_s=3600.0) is True
         assert analyze.joined_late(None, 3610.0) is False
+
+
+class TestTheFirstEndIsCountedFromTheRecordingsStart:
+    """Rochester sheet B 10/28 (6IUB9KbPkpc) came up with blue's first rock
+    sliding, 0.7 s in, and sheet C 11/11 (vztdzCNM2fk) with red's released
+    9.8 s in. Searched TURNAROUND_S past the run-up's start, as after an end's
+    close, each end's census came to 15 throws in turn."""
+
+    def test_the_video_s_first_end_from_the_recording_s_first_moment(self):
+        assert analyze.search_turnaround(None, 0.0) == 0.0
+        assert analyze.search_turnaround(None, 3600.0, recording_start_s=3600.0) == 0.0
+
+    def test_a_first_end_whose_run_up_starts_later_is_searched_as_any_other(self):
+        # Sheet A 11/4: the game began six minutes in, its run-up at 120 s.
+        assert analyze.search_turnaround(None, 120.0) == sidereleases.TURNAROUND_S
+
+    def test_every_later_end_skips_the_turnaround(self):
+        assert analyze.search_turnaround(1815.0, 1815.0) == sidereleases.TURNAROUND_S
 
 
 class TestTheRunUpStartsWhereThePreviousEndClosed:

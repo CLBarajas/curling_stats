@@ -253,10 +253,10 @@ class Scan:
         return out
 
 
-def lost(arrivals, thrown_by, scan, t0=5297.0, t1=6455.0, v=None, frames=()):
+def lost(arrivals, thrown_by, scan, t0=5297.0, t1=6455.0, v=None, frames=(), **kw):
     return S.lost_rocks("v.mp4", view() if v is None else v, kept=arrivals,
                         releases=list(thrown_by), thrown_by=thrown_by,
-                        arrivals=arrivals, house_frames=frames, t0=t0, t1=t1, scan=scan)
+                        arrivals=arrivals, house_frames=frames, t0=t0, t1=t1, scan=scan, **kw)
 
 
 class TestFindSlides:
@@ -413,6 +413,15 @@ class TestLostRocks:
         scan = Scan([("red", 5340.5)])
         assert lost(arrivals, thrown_by, scan, t0=5330.0) == []
         assert scan.calls[0][0] == pytest.approx(5330.0 + S.TURNAROUND_S)
+
+    def test_the_video_s_first_end_is_searched_from_its_run_up_s_start(self):
+        """Nothing closed before it, so there is no turnaround to wait out
+        (`analyze.search_turnaround`): the slide 10.5 s in is a throw."""
+        arrivals, thrown_by = seen_end()
+        scan = Scan([("red", 5340.5)])
+        got = lost(arrivals, thrown_by, scan, t0=5330.0, turnaround_s=0.0)
+        assert scan.calls[0][0] == pytest.approx(5330.0)
+        assert [(d.color, d.reason) for d in got] == [("red", R.REASON)]
 
     def test_a_practice_slide_long_before_the_end_is_out_of_reach(self):
         arrivals, thrown_by = seen_end()
