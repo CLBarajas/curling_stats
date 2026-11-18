@@ -1771,6 +1771,11 @@ def create_app(repo, store, youtube, settings: Settings, now=utcnow, auth=None) 
         project configured this reports disabled and the whole feature simply
         is not there.
         """
+        # One person on their own computer (auth.LocalPerson): already signed
+        # in, so the page is told who and with what token, and loads no SDK.
+        if getattr(auth, "local", None):
+            return JSONResponse({"enabled": True, "local": auth.local},
+                                headers={"Cache-Control": "no-store"})
         if not (auth.enabled and settings.firebase_api_key):
             return JSONResponse({"enabled": False},
                                 headers={"Cache-Control": "public, max-age=300"})

@@ -70,6 +70,35 @@ class FakeVerifier:
         return self._tokens.get(id_token)
 
 
+class LocalPerson:
+    """One person, already signed in: the service run on your own computer.
+
+    For somebody charting their own club's games at home, who wants the pages
+    that need a person -- My shots above all -- without a Firebase project.
+    The browser is told who it is (api.py /api/auth/config, ``local``) along
+    with the one token this process accepts, so it is only ever for a server
+    bound to this machine (scripts/myshots_local.py binds 127.0.0.1). The
+    token is new each time the process starts.
+    """
+
+    enabled = True
+
+    def __init__(self, uid: str = "local", name: str = "Me", token: str | None = None):
+        import secrets
+        self.uid, self.name = uid, name
+        self.token = token or secrets.token_urlsafe(24)
+
+    @property
+    def local(self) -> dict:
+        return {"uid": self.uid, "name": self.name, "token": self.token}
+
+    def verify(self, id_token):
+        if id_token != self.token:
+            return None
+        return {"sub": self.uid, "name": self.name, "email": None, "email_verified": False,
+                "firebase": {"sign_in_provider": "local"}}
+
+
 class FirebaseVerifier:
     """Google Sign-In, through Firebase Auth / Identity Platform.
 
