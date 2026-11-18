@@ -23,6 +23,12 @@ from curling_score.geometry import constants as C
 
 # Within this of a stone the state has already, a long stone is that stone.
 DEDUPE_M = 0.45
+# ...but two stones of one colour seen apart in the same read (`standing`)
+# are two, unless closer than two stones can stand: a guard thrown beside
+# another. Rochester sheet B 10/28 (6IUB9KbPkpc) end 5 rock 5 stopped 0.32 m
+# from rock 1's guard and end 8 rock 4 0.37 m from rock 2's, both read apart,
+# and each was dropped as the other, so neither rock had a place.
+SAME_READ_M = 2 * C.STONE_RADIUS_M
 # Past the hog line, a stone is out of play.
 MAX_Y_M = C.TEE_TO_HOGLINE_M + C.STONE_RADIUS_M
 # Read this long after a rock's rest: the stone has stopped, sweepers moving off.
@@ -62,13 +68,34 @@ def place(stones, view, known, from_m: float) -> list[dict]:
         y = y_edge - C.STONE_RADIUS_M
         if not (from_m <= y <= MAX_Y_M) or abs(x) > C.SIDELINE_ABS_X_M:
             continue
-        if any(math.hypot(x - k["x"], y - k["y"]) < DEDUPE_M for k in list(known) + out):
+        if any(math.hypot(x - k["x"], y - k["y"]) < DEDUPE_M for k in known):
+            continue
+        if any(math.hypot(x - g["x"], y - g["y"]) < (SAME_READ_M if g["color"] == color else DEDUPE_M)
+               for g in out):
             continue
         x, y = round(x, 4), round(y, 4)
         out.append({"color": color, "x": x, "y": y,
                     "distance_to_tee": math.hypot(x, y), "in_house": False,
                     "confidence": None, "source": "long"})
     return out
+
+
+def unmatched(a, b, within: float = DEDUPE_M):
+    """The stones of ``a`` and of ``b`` that are not the same stone as one in
+    the other: pairs of one colour within ``within``, nearest first, each stone
+    in one pair at most. Two guards side by side are two stones, not one seen
+    twice, so a stone already paired cannot vouch for a second."""
+    pairs = sorted((math.hypot(p["x"] - q["x"], p["y"] - q["y"]), i, j)
+                   for i, p in enumerate(a) for j, q in enumerate(b) if p["color"] == q["color"])
+    used_a, used_b = set(), set()
+    for dist, i, j in pairs:
+        if dist >= within:
+            break
+        if i not in used_a and j not in used_b:
+            used_a.add(i)
+            used_b.add(j)
+    return ([p for i, p in enumerate(a) if i not in used_a],
+            [q for j, q in enumerate(b) if j not in used_b])
 
 
 def add(end: dict, view, read_stones, from_m: float, after_far_s: float = AFTER_FAR_S) -> int:
@@ -85,8 +112,7 @@ def add(end: dict, view, read_stones, from_m: float, after_far_s: float = AFTER_
         nxt = next((s for s in shots[i + 1:] if not s.get("missing")), None)
         extra = place(read_stones(_read_at(shot, nxt, after_far_s)), view, stones, from_m)
         if shot.get("delivered_stone_index") is None:
-            new = [g for g in extra if g["color"] == shot.get("color")
-                   and not any(math.hypot(g["x"] - p["x"], g["y"] - p["y"]) < DEDUPE_M for p in last)]
+            new = [g for g in unmatched(last, extra)[1] if g["color"] == shot.get("color")]
             if len(new) == 1:
                 shot["delivered_stone_index"] = len(stones) + extra.index(new[0])
                 if shot.get("shot_type") in NAMEABLE and shot.get("t_far_s") is not None:

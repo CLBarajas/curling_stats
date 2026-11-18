@@ -263,3 +263,32 @@ def test_a_stone_seen_in_one_frame_only_is_not_read():
     track = [(10.0, 600.0, 50.0, 300.0), (10.1, 700.0, 50.0, 300.0), (10.2, 700.5, 50.0, 300.0)]
     got = _reader_on({"red": {2: track}})(10.0)
     assert len(got) == 1 and got[0][0] == pytest.approx(700.25)
+
+
+def test_two_guards_seen_apart_in_one_read_are_both_placed():
+    """Rochester sheet B 10/28 end 5: rock 5 stopped 0.32 m from rock 1's
+    guard, and the read after it saw both."""
+    first, beside, again = edge_of(0.50, 4.39), edge_of(0.19, 4.30), edge_of(0.52, 4.40)
+    got = longguards.place([(*first, "red"), (*beside, "red"), (*again, "red")], VIEW,
+                           known=[], from_m=1.7)
+    assert sorted((round(g["x"], 1), round(g["y"], 1)) for g in got) == [(0.2, 4.3), (0.5, 4.4)]
+
+
+def _shot(n, color, t, shot_type="guard", **kw):
+    return {"number": n, "color": color, "t_rest_s": t, "stones": [], "delivered_stone_index": None,
+            "shot_type": shot_type, **kw}
+
+
+def test_a_guard_thrown_beside_another_is_that_rock_s():
+    """The first guard is matched to its own reading; the second, though
+    within DEDUPE_M of it, is new, and so is the rock's."""
+    end = {"house": "top", "shots": [_shot(1, "red", 10.0), _shot(2, "yellow", 40.0, "flashed"),
+                                     _shot(3, "red", 70.0, "unknown", t_far_s=60.0)],
+           "final_stones": []}
+    first, beside = edge_of(0.50, 4.39), edge_of(0.19, 4.30)
+    reads = lambda t: [(*first, "red")] + ([(*beside, "red")] if t > 65 else [])
+    longguards.add(end, VIEW, reads, from_m=1.7)
+    s3 = end["shots"][2]
+    placed = s3["stones"][s3["delivered_stone_index"]]
+    assert (round(placed["x"], 1), round(placed["y"], 1)) == (0.2, 4.3)
+    assert s3["shot_type"] == "guard"
