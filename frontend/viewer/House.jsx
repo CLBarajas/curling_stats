@@ -255,20 +255,26 @@ export function HouseThumb({ shot, showTrack }) {
       {showTrack && <Ghosts shot={shot} />}
       {showTrack && <Broom shot={shot} />}
       <StoneDiscs stones={shot?.stones ?? []} thrown={shot?.delivered_stone_index} />
-      {isBlank(shot) && <Unknown hatch={`${id}hatch`} text="STATE UNKNOWN" />}
+      {isBlank(shot) && <Unknown hatch={`${id}hatch`} />}
     </svg>
   );
 }
 
-function Unknown({ hatch = "hatch", text = "STATE UNKNOWN — chart this shot" }) {
+/* A blank rock's house. The words are two short lines, not one: as a single
+ * line ("STATE UNKNOWN — chart this shot") they ran wider than the sheet in
+ * any but the narrowest font and were cut off at both sides. The second line
+ * is an instruction, so it shows only where this rock can be charted. */
+function Unknown({ hatch = "hatch", canChart = false }) {
   return (
     <g pointerEvents="none">
       <rect x={-R.halfWidth} y={R.back} width={2 * R.halfWidth} height={R.hog - R.back}
             fill={`url(#${hatch})`} />
       <rect x={-R.halfWidth} y={R.back} width={2 * R.halfWidth} height={R.hog - R.back}
             fill="none" stroke={PAINT.warn} strokeWidth={0.05} strokeDasharray="0.25 0.18" />
-      <text x={0} y={4.9} textAnchor="middle" fontSize={0.34} fill={PAINT.warn}
-            fontWeight="700">{text}</text>
+      <text x={0} y={canChart ? 4.75 : 4.9} textAnchor="middle" fill={PAINT.warn} fontWeight="700">
+        <tspan x={0} fontSize={0.34}>STATE UNKNOWN</tspan>
+        {canChart && <tspan x={0} dy={0.4} fontSize={0.26}>chart this shot</tspan>}
+      </text>
     </g>
   );
 }
@@ -367,7 +373,7 @@ export function House({ shot, shotKey, selStone, houseMode, showTrack, readOnly,
       {showTrack && <Ghosts shot={shot} />}
       {showTrack && <Broom shot={shot} />}
       <Stones shot={shot} selStone={selStone} />
-      {isBlank(shot) && <Unknown />}
+      {isBlank(shot) && <Unknown canChart={!readOnly} />}
     </svg>
   );
 }
