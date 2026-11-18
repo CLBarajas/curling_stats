@@ -17,6 +17,7 @@ had time to stop there (`_read_at`) and, found, is a guard.
 """
 
 import math
+from statistics import median
 
 from curling_score.geometry import constants as C
 
@@ -105,11 +106,42 @@ def add(end: dict, view, read_stones, from_m: float, after_far_s: float = AFTER_
 
 READ_S, READ_FPS = 0.6, 10.0
 
+# `sidemodel.propose` files a colour's detections by 120 px column, one track
+# a column: right for the one stone a throw moves, but two standing stones can
+# share a column, and the median of both is neither. Rochester sheet B 10/28
+# (6IUB9KbPkpc) end 1: a blue centre guard at +2.10 m and rock 5 at +0.81 m
+# read as one stone at +1.42 m, inside `from_m`, and the guard went missing
+# from the house until rock 5 was gone; likewise red 6's guard behind red 8.
+# A column's detections are split into stones first: one stone's boxes stay
+# within these shares of its width of each other, across and along the sheet
+# (a stone frozen behind another sits about 0.28 of a width further up, on
+# sheet B's left camera at +2 m).
+SAME_STONE_COL = 0.5
+SAME_STONE_ROW = 0.2
+
+
+def standing(track):
+    """``track``'s ``(t, edge_row, body_px, cx)`` detections as the stones
+    standing in its column: lists of the detections of one stone each."""
+    stones = []
+    for p in sorted(track, key=lambda p: (p[1], p[-1])):
+        _t, row, body, *_rest = p
+        cx = p[-1]
+        for s in stones:
+            if (abs(row - median([q[1] for q in s])) < SAME_STONE_ROW * body
+                    and abs(cx - median([q[-1] for q in s])) < SAME_STONE_COL * body):
+                s.append(p)
+                break
+        else:
+            stones.append([p])
+    return stones
+
 
 def stones_reader(video, view, *, model=None, decode=None, propose=None):
     """``read_stones(t)`` for `add`: the stones of both colours the side model
-    finds in ``view`` over READ_S from ``t``, each a track's median
-    ``(edge_row, cx, color)`` -- they are standing still."""
+    finds in ``view`` over READ_S from ``t``, each the median
+    ``(edge_row, cx, color)`` of one stone's detections (`standing`) -- they
+    are standing still."""
     import numpy as np
 
     from curling_score.detect import longview, sidemodel
@@ -127,8 +159,9 @@ def stones_reader(video, view, *, model=None, decode=None, propose=None):
         out = []
         for color in ("red", "yellow"):
             for track in propose(model, frames, view, color, times).values():
-                if len(track) >= 2:
-                    out.append((float(np.median([r for _t, r, *_ in track])),
-                                float(np.median([c for *_x, c in track])), color))
+                for stone in standing(track):
+                    if len(stone) >= 2:
+                        out.append((float(np.median([r for _t, r, *_ in stone])),
+                                    float(np.median([c for *_x, c in stone])), color))
         return out
     return read

@@ -222,3 +222,44 @@ def test_a_rock_read_after_its_far_crossing_is_read_before_the_next_throw():
     reads = []
     longguards.add(end, VIEW, lambda t: reads.append(t) or [], from_m=3.3)
     assert reads[0] <= 123.0
+
+
+def _reader_on(tracks_by_colour, n=6):
+    """`longguards.stones_reader` over a fake read: ``n`` frames, and the
+    side model's tracks given per colour."""
+    def decode(_video, _rect, a, _b, fps):
+        return [None] * n, [a + k / fps for k in range(n)]
+
+    def propose(_model, _frames, _view, color, _times):
+        return tracks_by_colour.get(color, {})
+
+    return longguards.stones_reader("v.mp4", VIEW, model=object(), decode=decode, propose=propose)
+
+
+def test_two_stones_standing_in_one_column_are_read_as_two():
+    """Rochester sheet B 10/28 (6IUB9KbPkpc) end 1, read after rock 5: the
+    side model files a blue centre guard and rock 5, at the front of the
+    house, under one 120 px column; their one median was neither stone."""
+    guard, front = (492.6, 463.0, 45.0), (436.2, 365.8, 40.0)
+    track = []
+    for k in range(6):
+        t = 211.7 + k / 10
+        track += [(t, guard[0] + (k % 2), guard[2], guard[1] - (k % 3)),
+                  (t, front[0] - (k % 2), front[2], front[1] + (k % 2))]
+    got = sorted(_reader_on({"yellow": {3: track}})(211.7))
+    assert [c for *_p, c in got] == ["yellow", "yellow"]
+    assert got[0][:2] == pytest.approx(front[:2], abs=1.5)
+    assert got[1][:2] == pytest.approx(guard[:2], abs=1.5)
+
+
+def test_one_standing_stone_is_still_one():
+    track = [(10.0 + k / 10, 600.0 + (k % 3), 50.0, 300.0 - (k % 4)) for k in range(6)]
+    got = _reader_on({"red": {2: track}})(10.0)
+    assert len(got) == 1 and got[0][2] == "red"
+    assert got[0][:2] == pytest.approx((601.0, 298.5), abs=1.0)
+
+
+def test_a_stone_seen_in_one_frame_only_is_not_read():
+    track = [(10.0, 600.0, 50.0, 300.0), (10.1, 700.0, 50.0, 300.0), (10.2, 700.5, 50.0, 300.0)]
+    got = _reader_on({"red": {2: track}})(10.0)
+    assert len(got) == 1 and got[0][0] == pytest.approx(700.25)
