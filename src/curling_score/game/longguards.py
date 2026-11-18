@@ -13,7 +13,9 @@ state is read at its own rest, so a guard stays until it is hit or the end is
 over. A rock the overhead could not place (no ``delivered_stone_index``) is
 marked as the long stone of its colour that its own rest brought -- and one the
 far house never saw arrive, timed across the far hog line, is read once it has
-had time to stop there (`_read_at`) and, found, is a guard.
+had time to stop there (`_read_at`) and, found, is a guard. A rock the
+overhead saw touch nothing, after which a guard is gone for good, struck that
+guard out front (`struck_out_front`).
 """
 
 import math
@@ -29,6 +31,11 @@ DEDUPE_M = 0.45
 # from rock 1's guard and end 8 rock 4 0.37 m from rock 2's, both read apart,
 # and each was dropped as the other, so neither rock had a place.
 SAME_READ_M = 2 * C.STONE_RADIUS_M
+# A rock the far house saw do nothing that left a guard gone from the next two
+# reads struck it: a takeout out front, which the house-only overhead cannot
+# see (sheet B 10/28 end 1 rock 10, a peel of a centre guard; end 8 rock 9,
+# a peel that took the high guard). Only these, which say nothing was hit.
+STRUCK_OUT_FRONT = ("flashed", "unknown")
 # Past the hog line, a stone is out of play.
 MAX_Y_M = C.TEE_TO_HOGLINE_M + C.STONE_RADIUS_M
 # Read this long after a rock's rest: the stone has stopped, sweepers moving off.
@@ -127,7 +134,35 @@ def add(end: dict, view, read_stones, from_m: float, after_far_s: float = AFTER_
         last = extra
     if last and end.get("final_stones") is not None:
         end["final_stones"].extend(dict(g) for g in last)
+    struck_out_front(shots)
     return n
+
+
+def struck_out_front(shots) -> int:
+    """Name a hit each rock in STRUCK_OUT_FRONT after which a guard the end
+    camera read is gone, and stays gone at the next rock's read: the guard
+    goes into the rock's ``house_delta`` as removed. Returns how many."""
+    from curling_score.game.classify import CONF_HOUSE_CHANGED
+
+    read = [i for i, s in enumerate(shots)
+            if not s.get("missing") and s.get("t_rest_s") is not None]
+    longs = {i: [g for g in shots[i].get("stones") or [] if g.get("source") == "long"] for i in read}
+    hits = 0
+    for k, i in enumerate(read[1:], 1):
+        shot = shots[i]
+        if shot.get("shot_type") not in STRUCK_OUT_FRONT:
+            continue
+        gone = unmatched(longs[read[k - 1]], longs[i])[0]
+        if k + 1 < len(read):
+            gone = unmatched(gone, longs[read[k + 1]])[0]
+        if not gone:
+            continue
+        delta = dict(shot.get("house_delta") or {"added": [], "removed": [], "moved": []})
+        delta["removed"] = list(delta.get("removed") or []) + [dict(g) for g in gone]
+        shot["house_delta"] = delta
+        shot["shot_type"], shot["shot_type_confidence"] = "hit", CONF_HOUSE_CHANGED
+        hits += 1
+    return hits
 
 
 READ_S, READ_FPS = 0.6, 10.0

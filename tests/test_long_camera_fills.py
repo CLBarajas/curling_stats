@@ -292,3 +292,35 @@ def test_a_guard_thrown_beside_another_is_that_rock_s():
     placed = s3["stones"][s3["delivered_stone_index"]]
     assert (round(placed["x"], 1), round(placed["y"], 1)) == (0.2, 4.3)
     assert s3["shot_type"] == "guard"
+
+
+def _with_longs(*reads):
+    """Shots whose end-camera reads are ``reads``: lists of (x, y, colour)."""
+    return [{**_shot(k + 1, "red" if k % 2 == 0 else "yellow", 10.0 + 40 * k, "draw"),
+             "stones": [{"x": x, "y": y, "color": c, "source": "long"} for x, y, c in r]}
+            for k, r in enumerate(reads)]
+
+
+def test_a_rock_that_touched_nothing_in_the_house_but_took_a_guard_is_a_hit():
+    """Rochester sheet B 10/28 end 1 rock 10: a peel of the red centre guard,
+    which the house-only overhead saw only as a red passing through."""
+    guard = (0.06, 2.35, "red")
+    shots = _with_longs([guard], [], [])
+    shots[1]["shot_type"] = "flashed"
+    assert longguards.struck_out_front(shots) == 1
+    assert shots[1]["shot_type"] == "hit"
+    assert [(g["x"], g["y"]) for g in shots[1]["house_delta"]["removed"]] == [(0.06, 2.35)]
+
+
+def test_a_guard_missed_by_one_read_was_not_taken():
+    guard = (0.06, 2.35, "red")
+    shots = _with_longs([guard], [], [guard])
+    shots[1]["shot_type"] = "flashed"
+    assert longguards.struck_out_front(shots) == 0
+    assert shots[1]["shot_type"] == "flashed"
+
+
+def test_a_rock_charted_as_something_else_keeps_its_type():
+    shots = _with_longs([(0.06, 2.35, "red")], [], [])
+    shots[1]["shot_type"] = "draw"
+    assert longguards.struck_out_front(shots) == 0 and shots[1]["shot_type"] == "draw"
