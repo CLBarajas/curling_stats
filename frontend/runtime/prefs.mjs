@@ -12,7 +12,12 @@ export const DEFAULTS = {
   showTrack: true, autoplay: true, leadIn: VIDEO_LEAD_IN_S, pauseAfterShot: false,
   clockOpen: false, clockBars: false,
   tab: "detail", // the phone viewer's bottom tab: "house" | "detail" | "delivery" | "timing"
-  teamNumbers: false, // rocks numbered 1-8 for each team, not 1-16 through the end
+  // Rocks numbered 1-8 for each team, not 1-16 through the end: a curler
+  // thinks of a rock as their team's fifth, not the end's tenth. On unless
+  // turned off. (Named `rocksByTeam` since it became the default: a browser
+  // that saved the old `teamNumbers` as off, before there was a choice to
+  // make, gets the default like everyone else.)
+  rocksByTeam: true,
   sheetMin: false, // the phone's charting sheet folded down to its handle and the rock buttons
 };
 
