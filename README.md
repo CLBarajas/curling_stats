@@ -1,3 +1,26 @@
+## Rochester Curling Club members: start here
+
+This is my copy of curling_stats, set up for our club's sheet streams: Rochester Curling Club, in Rochester, New York. It watches a game's YouTube stream and charts every rock. Who threw it, by position. Where it stopped. Where the cameras allow, the line it was thrown on against the skip's broom, and its hog-to-hog time. Each team's thinking time, and the score off the wall board.
+
+How good is it? Four games so far, one on each sheet. It found 123, 127 and 118 rocks of 128 on three of them, and all 112 of a seven-end game. I've checked the doubtful ones against the video on one sheet, and some on two more. It's close. It isn't perfect.
+
+What it can't do yet:
+
+- Name the players. It knows the order, lead to skip, not the people.
+- Place a guard as precisely as a stone in the house. Our overhead cameras only see the house.
+- Read spin.
+- Prove itself on games beyond those four.
+
+To look at a game: a public viewer is on its way. Until then, ask me and I'll show you one.
+
+Something look wrong, or a question? Find me at the club.
+
+Chris Barajas
+
+How it works at Rochester, for the technically curious: [`docs/rochester-ny.md`](docs/rochester-ny.md). Everything below this line is Will Dimmit's README for his project as a whole. He wrote curling_stats for Granite Curling Club in Seattle and made it public.
+
+---
+
 # curling.dimmit.net
 
 This started as a project to make it easier for me to chart games with a 5U team I'm coaching, but has evolved into a tool that's also useful for evaluating all facets of club curing matches.
