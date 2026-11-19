@@ -327,6 +327,13 @@ LOST_MIN_SPEED_M_S = 1.1
 # where the line met each stone and 1.4-2.0 s between them. Real slides there
 # were seen every frame (0.2 s apart at SCAN_FPS); this allows three missed.
 LOST_MAX_GAP_S = 0.8
+# The gaps are whole frames at SCAN_FPS, summed in floats: three missed comes
+# out 0.8000000000002 as often as 0.7999999999997, and a bare `<=` failed the
+# first. Rochester sheet B 11/18 (QU4XN1R19TA) end 4 rock 3, a blue thrown at
+# 54:03 and lost for three frames at one place: the count came to 15, was not
+# used, and the end was built red first with its hammer on the wrong team.
+# A quarter of a frame keeps three missed on one side and four on the other.
+LOST_GAP_SLACK_S = 0.25 / SCAN_FPS
 # The search starts this long after the end's run-up does, which is the
 # previous end's last rock coming to rest. That house is this end's throwing
 # house, and it is being cleared: on bLkgfZaDSKw, the 6 s after end 1's last
@@ -466,6 +473,15 @@ def rock_times(kept, thrown_by, lags=()) -> list[tuple[float, str]]:
 ECHO_SHARE = 0.6
 
 
+def could_be_a_throw(s) -> bool:
+    """Whether a slide the throwing camera saw is one a throw could make: long
+    enough, far enough up the sheet, fast enough, and seen all the way, with
+    at most three frames missed in a row."""
+    return (s.span_m >= LOST_MIN_SPAN_M and s.y_max_m >= LOST_MIN_Y_MAX_M
+            and s.speed_m_s >= LOST_MIN_SPEED_M_S
+            and s.max_gap_s <= LOST_MAX_GAP_S + LOST_GAP_SLACK_S)
+
+
 def without_echoes(found):
     """``found`` -- ``(colour, Slide)`` pairs -- less each slide that is another
     colour's echo: within SAME_SLIDE_S of a slide of the other colour with
@@ -563,10 +579,7 @@ def lost_rocks(video, view, *, kept, releases, thrown_by, arrivals, house_frames
             log.exception("long-camera search failed over %.0f-%.0f s", a, b)
             continue
         for color, p in pts.items():
-            found += [(color, s) for s in find_slides(p, a, b)
-                      if s.span_m >= LOST_MIN_SPAN_M and s.y_max_m >= LOST_MIN_Y_MAX_M
-                      and s.speed_m_s >= LOST_MIN_SPEED_M_S
-                      and s.max_gap_s <= LOST_MAX_GAP_S]
+            found += [(color, s) for s in find_slides(p, a, b) if could_be_a_throw(s)]
     found = without_echoes(found)
     # Two throws are never within R.MIN_SEPARATION_S of each other, so slides
     # that close together are stones being moved, and none of them is a throw.

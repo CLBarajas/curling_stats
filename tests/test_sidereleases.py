@@ -572,6 +572,35 @@ class TestOneStoneReadInTwoColours:
         assert S.without_echoes(found) == found
 
 
+class TestASlideWithThreeFramesMissedCanBeAThrow:
+    """Rochester sheet B 11/18 (QU4XN1R19TA) end 4 rock 3, a blue thrown at
+    54:03: three frames missed in a row is a gap of four steps, 0.8 s, which
+    comes out a hair over or under in floats. Over, it failed the bound, the
+    count came to 15, and the end was built with its hammer on the wrong team."""
+
+    def _slide(self, gap):
+        from types import SimpleNamespace
+        return SimpleNamespace(span_m=5.5, y_max_m=2.7, speed_m_s=2.04, max_gap_s=gap)
+
+    def test_the_gap_as_the_frames_give_it_either_side_of_the_bound(self):
+        import numpy as np
+        over = float(np.diff([3240.6, 3241.4]).max())
+        under = float(np.diff([2727.4, 2728.2]).max())
+        assert over > S.LOST_MAX_GAP_S > under          # the floats really do fall both ways
+        assert S.could_be_a_throw(self._slide(over)) and S.could_be_a_throw(self._slide(under))
+
+    def test_four_frames_missed_is_still_too_many(self):
+        assert not S.could_be_a_throw(self._slide(5 / S.SCAN_FPS))
+
+    def test_the_other_bounds_still_hold(self):
+        from types import SimpleNamespace
+        ok = dict(span_m=5.5, y_max_m=2.7, speed_m_s=2.04, max_gap_s=0.2)
+        assert S.could_be_a_throw(SimpleNamespace(**ok))
+        for k, v in (("span_m", S.LOST_MIN_SPAN_M - 0.1), ("y_max_m", S.LOST_MIN_Y_MAX_M - 0.1),
+                     ("speed_m_s", S.LOST_MIN_SPEED_M_S - 0.1)):
+            assert not S.could_be_a_throw(SimpleNamespace(**{**ok, k: v}))
+
+
 class TestTheThrowingCamerasCount:
     def test_an_end_s_worth_in_turn_is_clean(self):
         seen = [(("yellow", "red")[k % 2], _slide(60.0 * k, 13)) for k in range(16)]
