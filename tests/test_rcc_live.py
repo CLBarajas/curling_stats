@@ -81,6 +81,33 @@ class TestVideoPipelineClub:
         assert got == {}
 
 
+class TestALiveChartIsDrawnInTheClubsColours:
+    """Rochester sheet B, 2026-11-18 (QU4XN1R19TA): the live chart came up
+    with yellow stones and Granite's house paint, because only `analyze`
+    handed the club's `stone_display` and `house_display` to the document."""
+
+    def _doc(self, **pipe):
+        from curling_score.game import format as format_mod
+        s = live.LiveSession(
+            "QU4XN1R19TA", "https://www.youtube.com/watch?v=QU4XN1R19TA",
+            SimpleNamespace(head_s=lambda: 120.0), format_mod.FOURS,
+            SimpleNamespace(processing_version=lambda sideviews: "test", **pipe), sheet="B")
+        return s.document()
+
+    def test_the_clubs_stones_and_houses_are_in_the_document(self):
+        club = clubs.CLUBS["rochester-b"]
+        doc = self._doc(club=club)
+        assert doc["stones"] == club.stone_display == {"yellow": {"name": "Blue", "color": "#4d8ef0"}}
+        assert doc["houses"] == club.house_display
+        assert doc["houses"]["top"] == clubs.CLUBS["rochester"].house_display["bottom"]
+
+    def test_a_club_with_none_of_its_own_writes_neither(self):
+        assert not {"stones", "houses"} & set(self._doc(club=clubs.GRANITE))
+
+    def test_no_club_at_all_writes_neither(self):
+        assert not {"stones", "houses"} & set(self._doc())
+
+
 class TestLiveClub:
     def test_no_club_is_none(self):
         from curling_score import cli

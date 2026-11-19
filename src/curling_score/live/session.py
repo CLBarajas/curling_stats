@@ -506,6 +506,10 @@ class LiveSession:
             out["practice"] = not out["in_progress"] and timeline.is_practice(out)
             out_games.append(out)
         cal = self.calibration
+        # What the club's stones and houses are called and painted, as
+        # `analyze` writes them: without these a live chart of a club with
+        # its own colours is drawn in Granite's until the game is run again.
+        club = getattr(self.pipeline, "club", None)
         doc = timeline.build_document(
             video_id=self.video_id, url=self.url, sheet=self.sheet,
             duration_s=head,
@@ -514,7 +518,9 @@ class LiveSession:
             games=out_games, window=(None, None),
             processing_version=self.pipeline.processing_version(
                 None if cal is None else cal.sideviews),
-            fmt=self.fmt, check=timeline.format_check(out_games, self.fmt))
+            fmt=self.fmt, check=timeline.format_check(out_games, self.fmt),
+            stones=getattr(club, "stone_display", None),
+            houses=getattr(club, "house_display", None))
         doc["live"] = {"in_progress": not self.done, "recorded_s": round(head, 1),
                        "updated_at": self.now().isoformat()}
         return doc
