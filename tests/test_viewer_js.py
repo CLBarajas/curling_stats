@@ -3126,6 +3126,13 @@ class TestTheAppKnowsItsTab:
         src = (Path(__file__).resolve().parents[1] / "frontend/runtime/player.mjs").read_text()
         assert "pending = { t, autoplay }" in src and "play ?? autoplay()" in src
 
+    def test_the_video_starts_muted(self):
+        """The player comes up with its sound off; the watcher turns it on in
+        the player's own controls. Nothing else in the page mutes or unmutes."""
+        src = (Path(__file__).resolve().parents[1] / "frontend/runtime/player.mjs").read_text()
+        assert "playerVars: { rel: 0, playsinline: 1, modestbranding: 1, mute: 1," in src
+        assert ".unMute(" not in src and ".mute(" not in src
+
     def test_the_tab_and_rock_are_written_to_the_hash(self):
         src = self.APP.read_text()
         assert "history.replaceState(" in src and "formatHash(" in src

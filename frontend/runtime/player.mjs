@@ -44,7 +44,11 @@ export function mount(el, videoId, { autoplay = () => true } = {}) {
   window.onYouTubeIframeAPIReady = () => {
     player = new YT.Player("player", {
       videoId,
-      playerVars: { rel: 0, playsinline: 1, modestbranding: 1, origin: location.origin },
+      // Muted until the watcher turns the sound on in the player's own
+      // controls: the stream's sound is a rink's worth of other people's
+      // talk, the chart is read with the picture, and a muted player is
+      // one every browser lets start on its own ("play on jump").
+      playerVars: { rel: 0, playsinline: 1, modestbranding: 1, mute: 1, origin: location.origin },
       events: {
         onReady: () => {
           ready = true;
