@@ -389,6 +389,10 @@ class LiveSession:
                                            "far_hog_from_long", False)),
             guards_from_long_m=getattr(getattr(self.pipeline, "club", None),
                                        "guards_from_long_m", None),
+            # As `analyze.analyze` gives it: where the camera behind the
+            # thrower counts the end (Rochester), a live end is counted too.
+            throws_from_end_camera=bool(getattr(getattr(self.pipeline, "club", None),
+                                                "throws_from_end_camera", False)),
             # As `analyze.analyze` gives it: how long after the far hog line a
             # guard is read is the club's to say (Rochester's 10 s).
             **({"guards_after_far_s": self.pipeline.club.guards_after_far_s}

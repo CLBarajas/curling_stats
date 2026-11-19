@@ -108,6 +108,45 @@ class TestALiveChartIsDrawnInTheClubsColours:
         assert not {"stones", "houses"} & set(self._doc())
 
 
+class TestALiveEndIsCountedByTheThrowingCamera:
+    """Rochester sheet B, 2026-11-18 (QU4XN1R19TA) end 1: red's last rock was
+    never charted, and blue's hammer stood in its place. `analyze` counts a
+    Rochester end from the camera behind the thrower (`throws_from_end_camera`);
+    the live session built its ends without saying so."""
+
+    def _context(self, **pipe):
+        from curling_score.game import format as format_mod
+
+        class Stop(Exception):
+            pass
+
+        got = []
+
+        def build_end(ctx, game, end, run_up):
+            got.append(ctx)
+            raise Stop
+
+        s = live.LiveSession(
+            "QU4XN1R19TA", "https://www.youtube.com/watch?v=QU4XN1R19TA",
+            SimpleNamespace(path="rec.0.ts", head_s=lambda: 1900.0), format_mod.FOURS,
+            SimpleNamespace(build_end=build_end, **pipe), sheet="B")
+        s.calibration = SimpleNamespace(setups={}, sideviews=None, until_s=900.0)
+        with pytest.raises(Stop):
+            s._build(SimpleNamespace(index=0), SimpleNamespace(number=1))
+        return got[0]
+
+    def test_rochester_counts(self):
+        club = clubs.CLUBS["rochester-b"]
+        assert club.throws_from_end_camera
+        assert self._context(club=club).throws_from_end_camera is True
+
+    def test_a_club_that_does_not_count_is_left_alone(self):
+        assert self._context(club=clubs.GRANITE).throws_from_end_camera is False
+
+    def test_no_club_is_left_alone(self):
+        assert self._context().throws_from_end_camera is False
+
+
 class TestLiveClub:
     def test_no_club_is_none(self):
         from curling_score import cli
