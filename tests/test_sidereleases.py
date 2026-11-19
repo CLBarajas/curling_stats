@@ -559,6 +559,13 @@ class TestOneStoneReadInTwoColours:
         blue, red = ("yellow", _slide(5296.2, 13)), ("red", _slide(5297.1, 6))
         assert S.without_echoes([blue, red]) == [blue]
 
+    def test_a_weaker_slide_just_past_six_tenths_is_still_an_echo(self):
+        """Rochester sheet B 11/18 (QU4XN1R19TA) end 3 rock 10: blue, 13
+        sightings, and a "red" of 8 beside it 0.7 s later. Both were dropped
+        and the throwing camera counted 15."""
+        blue, red = ("yellow", _slide(2627.9, 13)), ("red", _slide(2628.6, 8))
+        assert S.without_echoes([blue, red]) == [blue]
+
     def test_two_as_strong_as_each_other_are_left_alone(self):
         found = [("yellow", _slide(100.0, 12)), ("red", _slide(100.8, 10))]
         assert S.without_echoes(found) == found

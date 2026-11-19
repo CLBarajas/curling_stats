@@ -470,7 +470,11 @@ def rock_times(kept, thrown_by, lags=()) -> list[tuple[float, str]]:
 # sightings over 5.35 m, with a "red" of 6 over 2.67 m 0.9 s after it -- and
 # the two, being closer than two throws ever are, were both taken for stones
 # being moved and the end's first rock was lost.
-ECHO_SHARE = 0.6
+# 0.7, not 0.6: Rochester sheet B 11/18 (QU4XN1R19TA) end 3 rock 10 was blue,
+# 13 sightings over 5.2 m, with a "red" of 8 over 4.0 m 0.7 s after it. At
+# 0.62 of the blue it was no echo, both were dropped, and the count came to
+# 15. Two slides as strong as each other (10 of 12) are still left alone.
+ECHO_SHARE = 0.7
 
 
 def could_be_a_throw(s) -> bool:
