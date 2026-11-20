@@ -26,6 +26,7 @@ import argparse
 import dataclasses
 import json
 import pathlib
+import secrets
 import sys
 from datetime import datetime, timezone
 
@@ -33,6 +34,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "src")]
 
 from fastapi.testclient import TestClient  # noqa: E402
+from starlette.middleware.trustedhost import TrustedHostMiddleware  # noqa: E402
 
 from curling_score import timeline as timeline_mod  # noqa: E402
 from curling_score.service import auth as auth_mod  # noqa: E402
@@ -44,7 +46,14 @@ from curling_score.service.store import MemoryStore  # noqa: E402
 from curling_score.service.youtube import FakeYouTube, VideoMeta  # noqa: E402
 
 CHANNEL = "UClocal-club"           # every game's channel: the one allowed
-WORKER = {"Authorization": "Bearer worker-secret"}
+# New each start, like the person's token: a fixed one would open the worker
+# and admin routes to anything that can reach the port.
+WORKER_TOKEN = secrets.token_urlsafe(24)
+ADMIN_TOKEN = secrets.token_urlsafe(24)
+WORKER = {"Authorization": f"Bearer {WORKER_TOKEN}"}
+# The only names this server answers to. A page elsewhere that points its own
+# name at 127.0.0.1 (DNS rebinding) still sends its own name, and is refused.
+HOSTS = ["127.0.0.1", "localhost"]
 SHEETS = {"A": 1, "B": 2, "C": 3, "D": 4}
 
 
@@ -120,17 +129,20 @@ def main() -> None:
         site_mod.GRANITE, name="localhost", club_name=args.club, tz=args.tz,
         nav_hidden=frozenset({"/submit", "/practice", "/label", "/playlists", "/ice"}))
     base = f"http://127.0.0.1:{args.port}"
-    settings = Settings(public_base_url=base, worker_token="worker-secret",
-                        admin_token="admin-secret", allowed_channels={CHANNEL},
+    settings = Settings(public_base_url=base, worker_token=WORKER_TOKEN,
+                        admin_token=ADMIN_TOKEN, allowed_channels={CHANNEL},
                         model_id="local", max_queued=999, rate_hour=999, rate_day=9999,
                         club_tz=args.tz, site=profile)
     repo, store, yt = MemoryRepo(), MemoryStore(), FakeYouTube()
     app = create_app(repo, store, yt, settings, auth=me)
-    c = TestClient(app)
+    # Before the first request: Starlette takes no middleware once started.
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=HOSTS)
+    c = TestClient(app, base_url=base)
     who = {"Authorization": f"Bearer {me.token}"}
-    # The one person here runs the site: an admin, so naming teams is open.
+    # Validated is all naming teams needs (api_set_teams); admin would also
+    # open the user and role routes, which one person here has no use for.
     repo.put_user(User(id=me.uid, created_at=datetime.now(timezone.utc), name=me.name,
-                       role="admin"))
+                       role="validated"))
 
     say = lambda line: print(line, flush=True)
     say(f"\n  {lineup.get('team', '?')}, {lineup.get('position', '?')}")
