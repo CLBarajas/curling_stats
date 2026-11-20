@@ -2,7 +2,7 @@
 
 This branch, `rochester-ny`, adapts curling_stats to Rochester Curling Club's sheet streams. It's the club in Rochester, New York, not the Curling Club of Rochester in Minnesota. It's built on Will Dimmit's `dfw` branch, and anything in it is his to take.
 
-*Last updated 2026-11-18.* Every change from `dfw`: [compare `dfw...rochester-ny`](https://github.com/CLBarajas/curling_stats/compare/dfw...rochester-ny).
+*Last updated 2026-11-19.* Every change from `dfw`: [compare `dfw...rochester-ny`](https://github.com/CLBarajas/curling_stats/compare/dfw...rochester-ny).
 
 ## The streams
 
@@ -33,13 +33,15 @@ So the end cameras carry more of the load here than anywhere else in the project
 | Sheet | Game | Rocks found | Notes |
 |---|---|---|---|
 | A | `Go_JOSxJPsQ`, 2026-11-04 | 123 of 128 | The stream stops five rocks early |
-| C | `vztdzCNM2fk`, 2026-11-11 | 127 of 128 | Also charted live, during the game |
+| C | `vztdzCNM2fk`, 2026-11-11 | 128 of 128 | Also charted live, during the game |
 | D | `Vu6sd-fo0PE`, 2026-11-09 | 112 of 112 | A seven-end game |
 | B | `6IUB9KbPkpc`, 2026-10-28 | 127 of 128 | An older stream layout. The 128th rock was never thrown: the game was conceded |
+| A | `WSJVZqj2Cpw`, 2026-10-21 | 96 of 96 | A six-end game, in a stream it shares with an earlier match |
+| B | `QU4XN1R19TA`, 2026-11-18 | 96 of 96 | A six-end game. Charted live as well, less completely: 93 |
 
-- **Checked by eye:** every doubtful rock on sheets B and D, and some on A and C.
-- **Every hammer agrees with the scoreboard** on all four games.
-- **No harm at Granite.** Will's answer-key game (`VXU9xwmugRg`, in `validation/ground_truth.json`) scores the same on this branch as on `dfw`: all 18 deliveries he checked by eye, none of his 8 non-deliveries, and the board. His `scripts/compare_timelines.py` pairs all 208 rocks between the two. Most of the Rochester-specific work never runs there, so this shows no harm, not a gain.
+- **Checked by eye:** every doubtful rock in the 10/28 and 11/9 games, and some in the 11/4 and 11/11 games. The other two the least.
+- **Every hammer agrees with the scoreboard** on all six games.
+- **No harm at Granite**, as this branch stood on 2026-11-17; not run again since. Will's answer-key game (`VXU9xwmugRg`, in `validation/ground_truth.json`) scored the same on this branch as on `dfw`: all 18 deliveries he checked by eye, none of his 8 non-deliveries, and the board. His `scripts/compare_timelines.py` paired all 208 rocks between the two. Most of the Rochester-specific work never runs there, so this shows no harm, not a gain.
 - **Tests:** the suite fails exactly the tests that fail on `dfw`, and no others. Most of those need the hosted service's packages, which aren't installed here, or are test stand-ins Will has since fixed on `main`.
 
 ## Running it
@@ -58,7 +60,7 @@ curling-score -v live "https://www.youtube.com/watch?v=<id>" --club rochester --
 ```
 
 - **`-v` goes before the command**, or there's no progress output.
-- **`--device mps`** uses an Apple-silicon GPU for every model: about 45 minutes for a two-hour game.
+- **`--device mps`** uses an Apple-silicon GPU for every model: about 35 minutes for a two-hour game.
 - **The release model looks only for CUDA**, so on a Mac release times come from fallbacks. `CURLING_SCORE_RELEASE_CPU=1` reads them on the CPU instead, slower.
 - **Team names aren't read from the stream.** Write them into `games[0].teams` in `timeline.json` after a run.
 - **Live, the last end settles only when the stream ends.** For a while after the second-last end the viewer looks stalled.
@@ -74,10 +76,10 @@ curling-score -v live "https://www.youtube.com/watch?v=<id>" --club rochester --
 ## Plans
 
 1. **Games the code hasn't seen.** Two or three new games, one per sheet, run once with no changes and checked by eye. That's the honest accuracy figure.
-2. **Finish checking the four games by eye**, sheet A first.
-3. **A public viewer of a few games** for club members, read-only, on this fork's GitHub Pages. In progress.
+2. **Finish checking the six games by eye**, sheet A first.
+3. **A public viewer** for club members, read-only. Live: [FifthSense](https://fifthsense.barajas.io/), six games, on this fork's GitHub Pages.
 4. **Offer the general fixes back to Will**, as small pull requests on whichever branch he prefers.
-5. **Single rocks to look into:** on sheet A, end 1's rock 15 lost its resting place in the 11/15 changes, and end 6's rock 2 is typed a guard but not placed. On sheet D, end 3's rock 8 has no position. On sheet C, end 1 is one rock short.
+5. **Things to look into:** on sheet A, end 1's rock 15 has no resting place. On sheet D, end 3's rock 8 has no position. On sheet C, end 1's rock 13 is found but charted hogged. In the 11/18 game on sheet B, the stones counted in the house disagree with the scoreboard in three ends, though every throw is found.
 6. **Live:** settle the last end once its stones are cleared, not when the stream ends.
 7. **More labelled frames** from other sheets and games, so the models don't rest on one game.
 8. **Camera framing** would help more than any code. A few suggestions are with the club: sheet C's right camera, and overheads that show the guard zone.
