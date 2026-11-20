@@ -520,20 +520,23 @@ class Plan:
 
     Planned from what the pass reads its windows from, before it starts. A
     window the pass asks for that is not in the plan is decoded then; one in
-    the plan it never asks for costs a decode and nothing else.
+    the plan it never asks for costs a decode and nothing else. ``ahead`` is
+    how many are started beyond the one being taken, for a pass whose windows
+    are too large to hold `AHEAD` of.
     """
 
-    def __init__(self, video, windows):
+    def __init__(self, video, windows, ahead=AHEAD):
         self.video = video
         self.keys = [_key(video, rect, t0, t1, fps) for rect, t0, t1, fps in windows]
         self.next = 0
         self.started = set()
+        self.ahead = ahead
 
     def decode(self, video, rect, t0, t1, fps=30.0):
         key = _key(video, rect, t0, t1, fps)
         if key in self.keys[self.next:]:
             self.next = self.keys.index(key, self.next) + 1
-        for i in range(self.next, min(self.next + AHEAD, len(self.keys))):
+        for i in range(self.next, min(self.next + self.ahead, len(self.keys))):
             if i not in self.started:
                 self.started.add(i)
                 if _reading is not None:

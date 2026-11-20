@@ -11,6 +11,7 @@ and ``classify.classify_shot`` -- and the second only ever sees a shot.
 """
 
 import dataclasses
+from contextlib import nullcontext
 
 import numpy as np
 
@@ -72,13 +73,21 @@ ENTER_SPEED_M_S = 2.0              # a pace to look for it at, before it shows i
 FAST_M_S = 4.0                    # no delivered stone is faster at the far hog line
 
 
-def end_camera_crossing(tracks, view, t_from):
+def end_camera_crossing(tracks, view, t_from, *, seen_to=None, tried_to=None):
     """``(t, speed_m_s)`` of the stone coming in over the hog line of ``view``,
     from ``sidemodel.propose``'s tracks, or None.
 
     The first sighting near the view's edge with a stone moving in behind it:
     boxes within ENTER_COL_PX of the column it came in at, and no further in
     than it could have come. A stone parked there does not move.
+
+    For a window read a part at a time (`_crossing_as_read`): ``seen_to`` is
+    the last frame read so far, and a first sighting whose FIT_S runs past it
+    waits for the next part; ``tried_to`` is the ``seen_to`` of the part
+    before, and the sightings tried then are not tried again. A sighting is
+    judged by the FIT_S after it and nothing else, and the first that passes
+    is the answer, so each tried once, in order, as soon as its FIT_S has been
+    read, gives the crossing a read of the whole window gives.
     """
     from curling_score.geometry import constants as C
 
@@ -88,6 +97,10 @@ def end_camera_crossing(tracks, view, t_from):
     seen = sorted((t, view.metres_at(row), cx) for track in tracks.values()
                   for t, row, _w, cx in track if row < edge and t >= t_from)
     for t0, y0, c0 in seen:
+        if seen_to is not None and t0 + FIT_S > seen_to:
+            break
+        if tried_to is not None and t0 + FIT_S <= tried_to:
+            continue
         if y0 < enter_m:
             continue
         near = {}
@@ -126,9 +139,7 @@ def time_far_crossings_from_end_camera(shots, video, view, *, model=None, decode
     model = model or sidemodel.default_model()
     if model is None:
         return 0
-    decode = decode or longview.decode
-    propose = propose or sidemodel.propose
-    n = 0
+    todo = []
     for shot in shots:
         if getattr(shot, "missing", False):
             continue
@@ -143,18 +154,66 @@ def time_far_crossings_from_end_camera(shots, video, view, *, model=None, decode
             t0, t1 = rel.t + END_WINDOW_FROM_RELEASE_S[0], rel.t + END_WINDOW_FROM_RELEASE_S[1]
         else:
             continue
-        frames, times = decode(video, view.rect, t0, t1, END_FPS)
-        if not len(frames):
-            continue
-        tracks = sidemodel.split_at_gaps(propose(model, frames, view, shot.color, times),
-                                         sidemodel.STRADDLE_GAP_MAX_S)
-        got = end_camera_crossing(tracks, view, t0)
-        if got is None:
-            continue
-        old = have or split.FarCrossing(t=None)
-        shot.far_crossing = dataclasses.replace(old, t=got[0], reach=0.0)
-        n += 1
+        todo.append((shot, have, t0, t1))
+    ahead = nullcontext()
+    if decode is None:
+        # Each rock's window decodes while the one before it is read. One
+        # ahead, not `longview.AHEAD`: a window here is 15 s of every frame,
+        # about a gigabyte.
+        decode = longview.Plan(video, [(view.rect, t0, t1, END_FPS) for _s, _h, t0, t1 in todo],
+                               ahead=1).decode
+        ahead = longview.reading_ahead()
+    n = 0
+    with ahead:
+        for shot, have, t0, t1 in todo:
+            frames, times = decode(video, view.rect, t0, t1, END_FPS)
+            if not len(frames):
+                continue
+            if propose is None:
+                got = _crossing_as_read(model, frames, times, view, shot.color, t0)
+            else:
+                tracks = sidemodel.split_at_gaps(propose(model, frames, view, shot.color, times),
+                                                 sidemodel.STRADDLE_GAP_MAX_S)
+                got = end_camera_crossing(tracks, view, t0)
+            if got is None:
+                continue
+            old = have or split.FarCrossing(t=None)
+            shot.far_crossing = dataclasses.replace(old, t=got[0], reach=0.0)
+            n += 1
     return n
+
+
+def _crossing_as_read(model, frames, times, view, color, t_from):
+    """`end_camera_crossing` over one window, its frames given to the detector
+    a batch at a time and no further than the crossing.
+
+    The window opens well before any throw can reach the line and stays open
+    for the slowest draw, so the crossing comes anywhere in it, and the frames
+    after it were read for nothing: the detector's time is most of this pass,
+    and this pass a quarter of a Rochester end. The batches are the ones one
+    read of the whole window makes (`sidemodel.BATCH` frames, in order), so
+    the boxes are the same boxes, and `end_camera_crossing` says why the
+    crossing is the same crossing. A window with no crossing is read to its
+    end, as before: on Rochester sheet B 11/18 (QU4XN1R19TA) ends 1 and 2
+    that was 6 rocks of each 16, and the pass went from 60 and 66 s to 39.
+    """
+    from curling_score.detect import sidemodel
+
+    step = sidemodel.BATCH
+    tracks, tried_to = {}, None
+    for i in range(0, len(frames), step):
+        part = sidemodel.propose(model, frames[i:i + step], view, color, times[i:i + step])
+        for key, track in part.items():
+            tracks.setdefault(key, []).extend(track)
+        last = i + step >= len(frames)
+        seen_to = None if last else times[i + step - 1]
+        got = end_camera_crossing(
+            sidemodel.split_at_gaps(tracks, sidemodel.STRADDLE_GAP_MAX_S), view, t_from,
+            seen_to=seen_to, tried_to=tried_to)
+        if got is not None or last:
+            return got
+        tried_to = seen_to
+    return None
 
 
 # --- from the long camera behind the thrower ---------------------------------------------
