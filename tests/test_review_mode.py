@@ -64,7 +64,10 @@ class TestReviewPage:
 
     def test_the_flag_button_is_in_the_bundle(self, world):
         sid = a_source(world)["source_id"]
-        app = world["client"].get(f"/g/{sid}/app.js").text
+        # The bundle's lines are capped (esbuild's lineLimit), and a cap can
+        # fall inside a string as a backslash-newline continuation: "flag\\
+        # Btn" is still "flagBtn" to the browser, so read it as one.
+        app = world["client"].get(f"/g/{sid}/app.js").text.replace("\\\n", "")
         assert "flagBtn" in app and "flagDialog" in app and "/api/flags" in app
 
 
