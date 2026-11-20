@@ -694,17 +694,43 @@ def place(unaccounted, thrown_by, arrivals, frames, *, follow_fn, camera_sees_ho
     return arrivals, pairs, out, changed
 
 
-def follow_lost(lost, follow_fn):
+def soon(video, view, t_release) -> None:
+    """Say `follow` will read this release's window of ``view`` soon, so it
+    decodes meanwhile where a read-ahead is open (`longview.reading_ahead`).
+    Exactly the window `follow` asks for, or it is simply decoded then."""
+    if view is None or not getattr(view, "has_lateral", False):
+        return
+    from curling_score.detect import longview
+
+    longview.soon(video, view, t_release + WINDOW_S[0], t_release + WINDOW_S[1], FPS)
+
+
+def follow_lost(lost, follow_fn, soon_fn=None):
     """`place`'s say for a hog among the rocks the overhead saw at neither end
     (`sidereleases.lost_rocks`), which are found after it has run. A house-only
     overhead, like Cincinnati's, loses every guard short of the house this way.
-    Returns ``(lost, changed)``."""
-    from curling_score.detect import release as R
+    Returns ``(lost, changed)``.
 
-    out, changed = [], 0
+    ``soon_fn(color, t_release)`` is told of the next releases to be followed
+    as each is: `soon` bound to the video and the camera, for a caller with a
+    read-ahead open. Which rocks are followed is known before the first is, and
+    each window is 39 s of the camera, 0.85 s of decode the GPU sat through."""
+    from curling_score.detect import longview, release as R
+
+    def followed(d):
+        return getattr(d, "release", None) is not None and d.reason == R.REASON
+
+    ahead = [d.release for d in lost if followed(d)]
+    out, changed, k = [], 0, 0
     for d in lost:
         r = getattr(d, "release", None)
-        o = follow_fn(r.color, r.t) if r is not None and d.reason == R.REASON else None
+        o = None
+        if followed(d):
+            k += 1
+            if soon_fn is not None:
+                for nxt in ahead[k:k + longview.AHEAD]:
+                    soon_fn(nxt.color, nxt.t)
+            o = follow_fn(r.color, r.t)
         if o is not None and o.kind == REST:
             out.append(R.came_to_rest_at(r, o.t, o.x_m, o.y_m))
         elif o is not None and o.kind == THROUGH:

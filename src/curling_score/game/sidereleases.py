@@ -209,6 +209,22 @@ def _slide_for(shot, video, view, points):
     return fit_slide(points(video, view, shot.color, *w))
 
 
+def _planned_windows(shots, view) -> list:
+    """The windows `time_side_releases` will decode for ``shots``, in order, as
+    `longview.Plan` takes them. A rock whose window cannot be worked out is
+    left out, and decoded (or refused) when the pass reaches it: the plan only
+    reads ahead."""
+    out = []
+    for s in shots:
+        try:
+            w = _window(s)
+        except Exception:  # noqa: BLE001
+            continue
+        if w is not None:
+            out.append((view.rect, *w, FPS))
+    return out
+
+
 def time_side_releases(shots, video, view, *, points=None) -> int:
     """Give each shot the overhead lost a release from the long camera, in
     place; return how many it gave one.
@@ -225,8 +241,22 @@ def time_side_releases(shots, video, view, *, points=None) -> int:
             and getattr(s, "release", None) is None]
     if not todo:
         return 0
+    # The end's own correction, from the overhead releases with the most samples.
+    known = sorted((s for s in shots if not getattr(s, "missing", False)
+                    and getattr(s, "release", None) is not None
+                    and getattr(s.release, "source", "overhead") != SOURCE),
+                   key=lambda s: -len(getattr(s.release, "track", ())))[:CALIB_N]
     if points is None:
-        points = side_points
+        from curling_score.detect import longview
+
+        # Each rock's window decodes while the one before it is read, in the
+        # order they are read below: the calibration's rocks, then the rest. A
+        # window hangs off its rock's hog crossing or arrival, neither of
+        # which this pass touches.
+        plan = longview.Plan(video, _planned_windows(known + todo, view))
+
+        def points(video, view, color, t0, t1):
+            return side_points(video, view, color, t0, t1, decode=plan.decode)
 
     def seen(shot):
         try:
@@ -236,11 +266,6 @@ def time_side_releases(shots, video, view, *, points=None) -> int:
                           getattr(shot, "number", "?"))
             return None
 
-    # The end's own correction, from the overhead releases with the most samples.
-    known = sorted((s for s in shots if not getattr(s, "missing", False)
-                    and getattr(s, "release", None) is not None
-                    and getattr(s.release, "source", "overhead") != SOURCE),
-                   key=lambda s: -len(getattr(s.release, "track", ())))[:CALIB_N]
     d_rel, d_tee = [], []
     for s in known:
         got = seen(s)

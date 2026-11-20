@@ -196,6 +196,60 @@ class TestTimeSideReleases:
         lost = shot(2, "red", t_hog=hog_after(280.0), t_enter=295.0)
         assert S.time_side_releases([lost], "v.mp4", v, points=Slides([("red", 280.0)])) == 0
 
+    def test_its_own_reads_decode_ahead_in_the_order_they_are_read(self, monkeypatch):
+        """The pass as a run makes it: the calibration's rocks, then the ones to
+        fill, each window decoded while the one before it is read -- the same
+        windows, each once, and the same releases as with the decodes in line."""
+        from curling_score.detect import longview, sidemodel
+        v = view()
+        pushes = [("yellow", 100.0), ("yellow", 160.0), ("red", 280.0), ("red", 340.0)]
+
+        def end():
+            known = [shot(i + 1, "yellow", rel=overhead(t + 0.65 + 0.30), t_hog=hog_after(t),
+                          t_enter=t + 15.0) for i, (_c, t) in enumerate(pushes[:2])]
+            return known + [shot(3, "red", t_hog=hog_after(280.0), t_enter=295.0),
+                            shot(4, "red", t_enter=340.0 + 15.0),          # no hog crossing
+                            shot(5, "yellow", missing=True)]
+        decoded = []
+
+        def decode_now(video, rect, t0, t1, fps, lead):
+            decoded.append((t0, t1, fps))
+            times = [t0 + k / fps for k in range(int(round((t1 - t0) * fps)) + 1)]
+            return np.zeros((len(times), 4, 4, 3), np.uint8), times
+
+        def detect_band(model, frames, times, lo, hi, color, **kw):
+            # Each frame's box where the rock pushed off inside this window is
+            # at that moment: at rest in front of the hack, then sliding.
+            push = next((t for c, t in pushes if c == color and times[0] <= t <= times[-1]), None)
+            out = []
+            for t in times:
+                y = None if push is None else -3.3 + max(0.0, t - push) * 2.0
+                if y is None or y > C.TEE_TO_HOGLINE_M:
+                    out.append([])
+                    continue
+                row = v.row_for(y + C.STONE_RADIUS_M)
+                out.append([(v.centre_col_at(row), row, 38.0, 0.9)])
+            return out
+
+        monkeypatch.setattr(longview, "_decode_now", decode_now)
+        monkeypatch.setattr(sidemodel, "detect_band", detect_band)
+        monkeypatch.setattr(sidemodel, "default_model", lambda: object())
+        shots = end()
+        with longview.reading_ahead() as ahead:
+            n = S.time_side_releases(shots, "v.mp4", v)
+            assert ahead.ahead == 3 and ahead.then == 1
+        windows = [(*S._window(s), S.FPS) for s in shots[:4]]
+        assert sorted(decoded) == sorted(windows) and len(set(windows)) == 4
+        assert n == 2 and all(s.release is not None for s in shots[2:4])
+
+        # The decodes in line, as before: the same releases to the last digit.
+        decoded.clear()
+        again = end()
+        assert S.time_side_releases(again, "v.mp4", v) == 2
+        assert len(decoded) == 4
+        assert [(s.release.t, s.release.speed_m_s) for s in again[2:4]] == \
+               [(s.release.t, s.release.speed_m_s) for s in shots[2:4]]
+
 
 class TestTheOverheadReleaseRecordSaysWhereItCameFrom:
     def test_an_overhead_release_is_marked_overhead_by_default(self):

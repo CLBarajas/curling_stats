@@ -206,6 +206,16 @@ def follows_lost(dest_view, guards_from_long_m) -> bool:
     return bool(getattr(dest_view, "end_camera", False)) or guards_from_long_m is not None
 
 
+def follow_lost_ahead(path, dest_view, lost):
+    """`farfollow.follow_lost` by the camera facing the house, each rock's
+    window decoding while the one before it is read. The same windows, read
+    in the same order; only the GPU no longer waits on each decode."""
+    with longview.reading_ahead():
+        return farfollow.follow_lost(
+            lost, lambda color, t: farfollow.follow(path, dest_view, color, t),
+            soon_fn=lambda color, t: farfollow.soon(path, dest_view, t))
+
+
 def thrown_as_it_began(kept, prev_end_s, recording_start_s: float, per_end: int):
     """Who threw the recording's first end's first rock, where it was in motion
     as the stream came up, else None: the end is the recording's first, short,
@@ -866,8 +876,7 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
             # and so does a long camera where the overhead shows only the
             # houses (DFW): there every guard short of the house is lost.
             if follows_lost(dest_view, ctx.guards_from_long_m):
-                lost, n_placed = farfollow.follow_lost(
-                    lost, lambda color, t: farfollow.follow(path, dest_view, color, t))
+                lost, n_placed = follow_lost_ahead(path, dest_view, lost)
                 if n_placed:
                     progress(f"    end {end.number}: {n_placed} of them placed from the camera "
                              f"facing the house")
@@ -893,8 +902,7 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
                        for (c, s), m in zip(seen, matched) if m is None]
             extra = release.unaccounted(orphans, [], seq) if orphans else []
             if extra and follows_lost(dest_view, ctx.guards_from_long_m):
-                extra, _n = farfollow.follow_lost(
-                    extra, lambda color, t: farfollow.follow(path, dest_view, color, t))
+                extra, _n = follow_lost_ahead(path, dest_view, extra)
             unaccounted = unaccounted + extra
             # In throw order: each slide's candidate, or the one just made for it.
             made = iter(extra)
@@ -1068,10 +1076,13 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
     )
     if dest_view is not None and ctx.guards_from_long_m is not None:
         view = dest_view
-        n_guards = longguards.add(built, view, longguards.stones_reader(path, view),
-                                  ctx.guards_from_long_m,
-                                  **({} if ctx.guards_after_far_s is None
-                                     else {"after_far_s": ctx.guards_after_far_s}))
+        # Each rock's read decodes while the one before it is read
+        # (`longguards.stones_reader`'s plan).
+        with longview.reading_ahead():
+            n_guards = longguards.add(built, view, longguards.stones_reader(path, view),
+                                      ctx.guards_from_long_m,
+                                      **({} if ctx.guards_after_far_s is None
+                                         else {"after_far_s": ctx.guards_after_far_s}))
         progress(f"    end {end.number}: {n_guards} stone(s) placed from the long camera "
                  f"beyond the overhead's view")
     if built.get("placement") is not None:

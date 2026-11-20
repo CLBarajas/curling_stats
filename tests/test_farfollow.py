@@ -523,6 +523,50 @@ class TestFollowLost:
         got, n = FF.follow_lost([R.as_delivery(r)], lambda color, t: None)
         assert n == 0 and got[0].reason == R.REASON
 
+    def test_the_rocks_followed_next_are_announced_before_each_is_followed(self):
+        """For a caller reading ahead: only rocks that will be followed, in the
+        order they will be, two beyond the one in hand -- and the follows are
+        the ones made without it."""
+        from curling_score.detect import longview
+        assert longview.AHEAD == 2
+        rs = [R.Release("yellow" if k % 2 else "red", T0 + 60.0 * k, 9.0, 2.0) for k in range(4)]
+        lost = [R.as_delivery(r) for r in rs]
+        # One the house already placed is never followed, so never announced.
+        lost.insert(1, R.came_to_rest_at(R.Release("red", T0 + 30.0, 9.0, 2.0), T0 + 50.0, 0.1, 4.0))
+        log = []
+        got, n = FF.follow_lost(lost, lambda color, t: log.append(("follow", color, t)),
+                                soon_fn=lambda color, t: log.append(("soon", color, t)))
+        f, s = (lambda r: ("follow", r.color, r.t)), (lambda r: ("soon", r.color, r.t))
+        assert log == [s(rs[1]), s(rs[2]), f(rs[0]),
+                       s(rs[2]), s(rs[3]), f(rs[1]),
+                       s(rs[3]), f(rs[2]),
+                       f(rs[3])]
+        plain = []
+        want, n_plain = FF.follow_lost(lost, lambda color, t: plain.append(("follow", color, t)))
+        assert plain == [e for e in log if e[0] == "follow"]
+        assert n == n_plain == 0 and [d.reason for d in got] == [d.reason for d in want]
+
+    def test_the_window_announced_is_the_window_follow_decodes(self, monkeypatch):
+        from curling_score.detect import longview
+        from tests.test_long_camera_fills import VIEW
+        announced, decoded = [], []
+        monkeypatch.setattr(longview, "soon", lambda video, view, t0, t1, fps=30.0:
+                            announced.append(longview._key(video, view.rect, t0, t1, fps)))
+
+        def decode(video, rect, t0, t1, fps):
+            decoded.append(longview._key(video, rect, t0, t1, fps))
+            return [], []
+
+        FF.soon("v.mp4", VIEW, T0 + 0.37)
+        assert FF.follow("v.mp4", VIEW, "red", T0 + 0.37, model=object(), decode=decode) is None
+        assert announced == decoded and len(decoded) == 1
+
+    def test_a_camera_follow_would_refuse_is_not_announced(self, monkeypatch):
+        from curling_score.detect import longview
+        monkeypatch.setattr(longview, "soon", lambda *a, **k: pytest.fail("announced"))
+        FF.soon("v.mp4", None, T0)
+        FF.soon("v.mp4", SimpleNamespace(has_lateral=False), T0)
+
 
 class TestSweepersAndParkedStones:
     """DFW's long camera faces the house from low behind the far end: the

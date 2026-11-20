@@ -324,3 +324,66 @@ def test_a_rock_charted_as_something_else_keeps_its_type():
     shots = _with_longs([(0.06, 2.35, "red")], [], [])
     shots[1]["shot_type"] = "draw"
     assert longguards.struck_out_front(shots) == 0 and shots[1]["shot_type"] == "draw"
+
+
+def test_a_reader_that_plans_is_told_every_read_before_the_first():
+    """`longguards.add` works out when each rock is read from the end as it
+    stands; a reader that decodes ahead gets them all, in order, first -- and
+    the reads and what they place are what they are without a plan."""
+    def end():
+        return {"house": "top", "shots": [
+            {"number": 1, "color": "yellow", "t_release_s": 100.0, "t_rest_s": 106.0,
+             "t_far_s": 119.0, "shot_type": "unknown", "stones": [], "delivered_stone_index": None},
+            {"number": 2, "color": "red", "missing": True, "stones": []},
+            {"number": 3, "color": "yellow", "t_release_s": 124.0, "t_rest_s": 150.0,
+             "t_far_s": 139.0, "shot_type": "hogged", "stones": [], "delivered_stone_index": None},
+            {"number": 4, "color": "red", "t_release_s": 180.0, "t_rest_s": 200.0,
+             "stones": [], "delivered_stone_index": None, "shot_type": "draw"}],
+            "final_stones": []}
+    guard = edge_of(0.03, 4.5)
+    log = []
+
+    def read(t):
+        log.append(("read", t))
+        return [(*guard, "yellow")] if t >= 122.0 else []
+
+    plain = end()
+    longguards.add(plain, VIEW, read, from_m=3.3)
+    reads, log[:] = [t for _k, t in log], []
+
+    read.plan = lambda times: log.append(("plan", list(times)))
+    planned = end()
+    longguards.add(planned, VIEW, read, from_m=3.3)
+    assert log[0] == ("plan", reads) and len(reads) == 3
+    assert [t for k, t in log[1:]] == reads
+    assert planned == plain
+
+
+def test_the_guard_reader_s_planned_reads_decode_ahead(monkeypatch):
+    """`stones_reader` with its own decoder: told the reads to come, each is
+    decoded while the one before it is read -- the same windows, each once."""
+    from curling_score.detect import longview
+    decoded = []
+
+    def decode_now(video, rect, t0, t1, fps, lead):
+        decoded.append((t0, t1, fps))
+        return [None] * 6, [t0 + k / fps for k in range(6)]
+
+    monkeypatch.setattr(longview, "_decode_now", decode_now)
+    reader = longguards.stones_reader("v.mp4", VIEW, model=object(), propose=lambda *a: {})
+    times = [10.5, 55.25, 101.0, 160.5]
+    windows = [(t, t + longguards.READ_S, longguards.READ_FPS) for t in times]
+    with longview.reading_ahead() as ahead:
+        reader.plan(times)
+        assert [reader(t) for t in times] == [[], [], [], []]
+        assert ahead.ahead == len(times) - 1 and ahead.then == 1
+    assert sorted(decoded) == windows
+
+    # With a decoder handed in, or no model, a plan starts nothing.
+    decoded.clear()
+    mine = longguards.stones_reader("v.mp4", VIEW, model=object(), propose=lambda *a: {},
+                                    decode=lambda *a: ([], []))
+    with longview.reading_ahead() as ahead:
+        mine.plan(times)
+        assert not ahead.waiting and mine(10.5) == []
+    assert decoded == []

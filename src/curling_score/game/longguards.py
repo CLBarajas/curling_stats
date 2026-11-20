@@ -108,10 +108,24 @@ def unmatched(a, b, within: float = DEDUPE_M):
 def add(end: dict, view, read_stones, from_m: float, after_far_s: float = AFTER_FAR_S) -> int:
     """Add the long camera's guards to each rock of a built ``end`` (and its
     final stones). ``read_stones(t)`` gives the ``(edge_row, cx, color)`` of
-    the stones the view shows at ``t``. Returns how many long stones it added
-    in all."""
+    the stones the view shows at ``t``; where it has a ``plan``
+    (`stones_reader`'s does), that is given the times of every read first, in
+    order. Returns how many long stones it added in all."""
     n, last = 0, []
     shots = end.get("shots") or []
+    plan = getattr(read_stones, "plan", None)
+    if plan is not None:
+        # A reader that decodes ahead is told every read before the first is
+        # made: when a rock is read hangs on nothing an earlier read changes.
+        # Only told; the loop below works each time out for itself, as ever,
+        # and whatever goes wrong here costs the read-ahead and nothing else.
+        try:
+            plan([_read_at(shot, next((s for s in shots[i + 1:] if not s.get("missing")), None),
+                           after_far_s)
+                  for i, shot in enumerate(shots)
+                  if not shot.get("missing") and shot.get("t_rest_s") is not None])
+        except Exception:  # noqa: BLE001
+            pass
     for i, shot in enumerate(shots):
         if shot.get("missing") or shot.get("t_rest_s") is None:
             continue
@@ -202,19 +216,31 @@ def stones_reader(video, view, *, model=None, decode=None, propose=None):
     """``read_stones(t)`` for `add`: the stones of both colours the side model
     finds in ``view`` over READ_S from ``t``, each the median
     ``(edge_row, cx, color)`` of one stone's detections (`standing`) -- they
-    are standing still."""
+    are standing still.
+
+    Its ``plan(times)`` takes the reads to come, in order: each then decodes
+    while the one before it is read, where a read-ahead is open
+    (`longview.reading_ahead`). An end's sixteen reads are short, but each was
+    an ffmpeg started with the GPU waiting on it."""
     import numpy as np
 
     from curling_score.detect import longview, sidemodel
 
     model = model or sidemodel.default_model()
+    planned = {}
+    own_decode = decode is None
     decode = decode or longview.decode
     propose = propose or sidemodel.propose
+
+    def plan(times):
+        if model is not None and own_decode:
+            planned["decode"] = longview.Plan(
+                video, [(view.rect, t, t + READ_S, READ_FPS) for t in times]).decode
 
     def read(t):
         if model is None:
             return []
-        frames, times = decode(video, view.rect, t, t + READ_S, READ_FPS)
+        frames, times = planned.get("decode", decode)(video, view.rect, t, t + READ_S, READ_FPS)
         if not len(frames):
             return []
         out = []
@@ -225,4 +251,5 @@ def stones_reader(video, view, *, model=None, decode=None, propose=None):
                         out.append((float(np.median([r for _t, r, *_ in stone])),
                                     float(np.median([c for *_x, c in stone])), color))
         return out
+    read.plan = plan
     return read
