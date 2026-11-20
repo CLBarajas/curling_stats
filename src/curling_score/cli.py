@@ -471,7 +471,8 @@ def _labels(args) -> int:
 def _serve(args) -> int:
     from curling_score.viewer import serve
 
-    serve(Path(args.out), port=args.port, open_browser=not args.no_open)
+    serve(Path(args.out), port=args.port, open_browser=not args.no_open,
+          local_video=not args.no_local_video)
     return 0
 
 
@@ -1040,6 +1041,13 @@ def main(argv=None) -> int:
     p.add_argument("--port", type=int, default=8000)
     p.add_argument("--no-open", action="store_true",
                    help="serve without opening the default browser at the page")
+    p.add_argument("--no-local-video", action="store_true",
+                   help="play the game in the YouTube player even when its video "
+                        "is in the cache. The default plays a copy of the cached "
+                        "download in the page (written once per game under "
+                        "viewer/ in the cache, the size of the video): no "
+                        "YouTube title, clock or logo over the picture after a "
+                        "jump or a pause, and no sound")
     p.set_defaults(func=_serve)
 
     p = sub.add_parser("info", help="print video metadata")

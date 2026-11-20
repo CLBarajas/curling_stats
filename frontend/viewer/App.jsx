@@ -21,6 +21,7 @@ import {
   chartSwapOff, endIdentity, restPassed, rockNumber,
 } from "../core/index.mjs";
 import { STONE_NAME, applyHouse } from "../core/constants.mjs";
+import { ownVideo } from "../core/video.mjs";
 import { accountsOn, whoIsSignedIn } from "../runtime/auth.mjs";
 import { saveSwitchedEnds } from "../runtime/switched.mjs";
 import * as store from "../runtime/overridesStore.mjs";
@@ -502,7 +503,11 @@ export function App({ doc, config, cursor, reload }) {
 
   const videoRef = useRef(null);
   useEffect(() => {
-    player.mount(videoRef.current, doc.source.video_id, { autoplay: () => ui.autoplay });
+    // The game's video as a file, where the page was offered one (the local
+    // `serve`, for a game whose video is in its cache); else YouTube.
+    player.mount(videoRef.current, doc.source.video_id,
+                 { autoplay: () => ui.autoplay,
+                   file: ownVideo(globalThis.window?.VIDEO, doc.source.video_id) });
     // Mounted once and never torn down: YT.Player replaces the element it is
     // given with a cross-origin iframe, and a remount costs the player and
     // the seek. The phone hides it behind the editor with CSS instead.
