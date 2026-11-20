@@ -13,6 +13,7 @@ The player builds its own DOM, so it runs against the stand-in browser in
 """
 
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -358,3 +359,151 @@ class TestTheAppOffersTheFile:
         css = (ROOT / "src/curling_score/viewer/style.css").read_text()
         rule = next(r for r in css.split("}") if ".video > div.vbar {" in r)
         assert "height:auto" in rule and "opacity:0" in rule and "pointer-events:none" in rule
+
+
+class TestTheVideoKeys:
+    """j and l, Shift with an arrow, m: the keys YouTube's player answers,
+    answered by the page for either player (App.jsx's keydown)."""
+
+    def test_a_jump_on_youtube_is_from_where_it_is_and_leaves_it_playing_or_not(self):
+        got = run_js("""
+            P.mount(H.box, 'abc', { autoplay: () => false });
+            const yt = H.youtubeReady();
+            yt.time = 100;
+            P.seekBy(10); P.seekBy(-5);
+            out(yt.calls);""")
+        assert got == [["seekTo", 110], ["seekTo", 105]]
+
+    def test_a_jump_back_stops_at_the_start(self):
+        got = run_js("""
+            P.mount(H.box, 'abc');
+            const yt = H.youtubeReady();
+            yt.time = 4;
+            P.seekBy(-10);
+            out(yt.calls);""")
+        assert got == [["seekTo", 0]]
+
+    def test_before_the_player_answers_a_jump_does_nothing(self):
+        got = run_js("""
+            P.mount(H.box, 'abc');
+            P.seekBy(10);
+            const yt = H.youtubeReady();     // drains anything queued
+            out(yt.calls);""")
+        assert got == []
+
+    def test_quick_jumps_on_youtube_count_from_the_last_one_not_its_stale_clock(self):
+        """getCurrentTime lags a seekTo: l l l must be +30, not +10 three times."""
+        got = run_js("""
+            P.mount(H.box, 'abc');
+            const yt = H.youtubeReady();
+            yt.getCurrentTime = () => 100;   // YouTube has not caught up with any of them
+            P.seekBy(10); P.seekBy(10); P.seekBy(10);
+            out(yt.calls);""")
+        assert got == [["seekTo", 110], ["seekTo", 120], ["seekTo", 130]]
+
+    def test_a_jump_on_a_file_stays_on_the_file_at_its_end(self):
+        """A file asked for a moment past its end gives up to YouTube; l near
+        the end must land on the end instead."""
+        got = run_js(mounted(duration=600) + """
+            v.currentTime = 595;
+            P.seekBy(10);
+            const at = v.currentTime;
+            P.seekBy(-1000);
+            out({ at, back: v.currentTime, youtube: H.youtube.length, paused: v.paused });""")
+        assert got == {"at": 600, "back": 0, "youtube": 0, "paused": True}
+
+    def test_a_jump_on_a_file_that_starts_part_way_in_keeps_to_the_stream_s_clock(self):
+        got = run_js(mounted(file='{ src: "g.mp4", offset: 280 }', duration=600) + """
+            v.currentTime = 20;
+            P.seekBy(10);
+            out({ file: v.currentTime, stream: P.currentTime() });""")
+        assert got == {"file": 30, "stream": 310}
+
+    def test_m_turns_the_sound_on_and_off_on_either_player(self):
+        got = run_js(mounted() + """
+            const was = v.muted; P.toggleMute(); const on = v.muted; P.toggleMute();
+            out({ was, on, off: v.muted });""")
+        assert got == {"was": True, "on": False, "off": True}
+        got = run_js("""
+            P.mount(H.box, 'abc');
+            const yt = H.youtubeReady();
+            P.toggleMute(); P.toggleMute();
+            out(yt.calls);""")
+        assert got == [["unMute"], ["mute"]]
+
+
+class TestYouTubeGivesTheKeyboardBack:
+    """A click on YouTube's frame gives it the keyboard; the page takes it back
+    once the click has landed (keepKeys), so its own keys keep working."""
+
+    def test_the_frame_is_let_go_of_after_the_window_loses_focus_to_it(self):
+        got = run_js("""
+            P.mount(H.box, 'abc');
+            const frame = document.createElement("iframe");
+            H.box.children[0].append(frame);
+            document.activeElement = frame;
+            H.windowFires("blur");
+            const before = frame.blurred ?? 0;
+            H.timers.at(-1)[0]();
+            out({ before, after: frame.blurred, focus: document.activeElement });""")
+        assert got == {"before": 0, "after": 1, "focus": None}
+
+    def test_focus_that_arrives_by_tab_is_left_with_youtube(self):
+        """Someone on the keyboard alone is going to YouTube's own controls."""
+        got = run_js("""
+            P.mount(H.box, 'abc');
+            const frame = document.createElement("iframe");
+            H.box.children[0].append(frame);
+            H.windowFires("keydown", { key: "Tab" });
+            document.activeElement = frame;
+            const before = H.timers.length;
+            H.windowFires("blur");
+            for (const [fn] of H.timers.slice(before)) fn();
+            out({ blurred: frame.blurred ?? 0, focus: document.activeElement === frame });""")
+        assert got == {"blurred": 0, "focus": True}
+
+    def test_a_frame_that_is_not_the_video_s_keeps_its_keyboard(self):
+        got = run_js("""
+            P.mount(H.box, 'abc');
+            const other = document.createElement("iframe");
+            document.activeElement = other;
+            H.windowFires("blur");
+            H.timers.at(-1)[0]();
+            out(other.blurred ?? 0);""")
+        assert got == 0
+
+    def test_the_page_s_own_video_needs_no_taking_back(self):
+        got = run_js(mounted() + "out((H.winListeners.blur ?? []).length);")
+        assert got == 0
+
+
+class TestTheKeysAreThePage_s:
+    def test_the_app_answers_youtube_s_keys(self):
+        app = (ROOT / "frontend/viewer/App.jsx").read_text()
+        for line in ['case "j": player.seekBy(-JUMP_SEEK_S)', 'case "l": player.seekBy(JUMP_SEEK_S)',
+                     'case "k": player.togglePlay()', 'case "m": player.toggleMute()',
+                     'case "f": player.toggleFullscreen()',
+                     'case " ": if (ev.target !== document.body && ev.target !== document.documentElement) return;',
+                     'if (ev.repeat && TOGGLE_KEYS.includes(ev.key)) return;',
+                     'if (ev.shiftKey) { player.seekBy(-SHIFT_SEEK_S); break; }',
+                     'if (ev.shiftKey) { player.seekBy(SHIFT_SEEK_S); break; }']:
+            assert line in app
+
+    def test_every_key_the_card_lists_is_one_the_page_answers(self):
+        """The card and the keydown handler must not drift apart."""
+        card = (ROOT / "frontend/viewer/KeysDialog.jsx").read_text()
+        app = (ROOT / "frontend/viewer/App.jsx").read_text()
+        listed = set(re.findall(r'\[\["([a-z0-9?])"', card)) | set(re.findall(r'", "([a-z0-9])"\]', card))
+        # A reformatted card must fail here, not pass with nothing found.
+        assert {"j", "l", "k", "m", "f", "?", "v", "t", "n", "x", "c", "d", "r", "y", "0", "4"} <= listed, listed
+        for k in listed:
+            assert f'case "{k}"' in app, k
+        for name, case in [("Enter", 'case "Enter"'), ("Esc", 'case "Escape"'), ("Space", 'case " "')]:
+            assert f'"{name}"' in card and case in app, name
+
+    def test_the_selected_rock_s_ring_stays_out_of_the_gap(self):
+        """2 px of outline drawn 2 px inside: wholly on the chip, whatever the
+        gap (1 px in some rows). Nothing may push it back out."""
+        css = (ROOT / "src/curling_score/viewer/style.css").read_text()
+        assert ".shot.sel { outline:2px solid var(--accent); outline-offset:-2px;" in css
+        assert re.search(r"\.shot\.sel\s*\{[^}]*outline-offset:\s*[1-9]", css) is None

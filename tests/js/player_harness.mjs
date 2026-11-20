@@ -31,7 +31,8 @@ class El {
   replaceChildren(...kids) { this.children = kids; }
   setAttribute(k, v) { this.attrs[k] = v; }
   removeAttribute(k) { delete this.attrs[k]; if (k === "src") delete this.src; }
-  blur() { this.blurred = (this.blurred ?? 0) + 1; }
+  blur() { this.blurred = (this.blurred ?? 0) + 1; if (document.activeElement === this) document.activeElement = null; }
+  contains(el) { return el === this || this.children.some(c => c.contains?.(el)); }
   // A <video>'s own.
   play() { this.paused = false; this.fire("play"); return Promise.resolve(); }
   pause() { this.paused = true; this.fire("pause"); }
@@ -42,8 +43,11 @@ export const head = new El("head");
 export const box = new El("div");
 made.length = 0;
 
-globalThis.document = { createElement: tag => new El(tag), head };
-globalThis.window = {};
+globalThis.document = { createElement: tag => new El(tag), head, activeElement: null };
+/* The window's own listeners (blur: the YouTube frame took the keyboard). */
+export const winListeners = {};
+globalThis.window = { addEventListener: (ev, fn) => (winListeners[ev] ??= []).push(fn) };
+export function windowFires(ev, more = {}) { for (const fn of winListeners[ev] ?? []) fn({ type: ev, ...more }); }
 globalThis.location = { origin: "http://viewer.test" };
 globalThis.setTimeout = (fn, ms) => { timers.push([fn, ms]); return timers.length; };
 globalThis.clearTimeout = () => {};
@@ -58,6 +62,9 @@ globalThis.YT = {
     pauseVideo() { this.calls.push(["pauseVideo"]); this.state = 2; }
     getCurrentTime() { return this.time; }
     getPlayerState() { return this.state; }
+    isMuted() { return this.muted ?? true; }
+    mute() { this.calls.push(["mute"]); this.muted = true; }
+    unMute() { this.calls.push(["unMute"]); this.muted = false; }
   },
 };
 

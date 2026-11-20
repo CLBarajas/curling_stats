@@ -12,7 +12,7 @@
  * remove the iframe YT put there; with no children in the vdom there is
  * nothing to reconcile, permanently.
  *
- * The page's own <video> lives here too, behind the same six functions.
+ * The page's own <video> lives here too, behind the same functions.
  * YouTube draws its title, its clock and its logo over the picture after every
  * jump and for as long as it is paused, and an embedding page cannot stop it;
  * a file played by the browser has nothing drawn on it but what this module
@@ -28,6 +28,12 @@ let ready = false;
 let pending = null;          // a seek asked for before the player could take it: {t, autoplay}
 let container = null;
 let own = null;              // the page's own <video>, while it is the one playing: {el, offset, giveUp}
+let lastSeek = null;         // YouTube's last seekTo: {t, at}. Its clock lags one (seekBy).
+
+/* How long after a seekTo YouTube's getCurrentTime may still report the old
+ * position: a second jump inside it counts from where the first one went. */
+const SEEK_SETTLE_MS = 1000;
+const now = () => globalThis.performance?.now?.() ?? Date.now();
 
 /* Written into #video rather than rendered by React. `.fallback` is styled
  * `height:100%` to fill the video box, and React must own no children there:
@@ -56,6 +62,7 @@ function mountYouTube(el, videoId, autoplay) {
   const slot = document.createElement("div");
   slot.id = "player";
   el.appendChild(slot);
+  keepKeys(el);
 
   window.onYouTubeIframeAPIReady = () => {
     player = new YT.Player("player", {
@@ -151,7 +158,7 @@ function controlBar(box, v, offset) {
   scrub.tabIndex = -1;                       // the keys are the page's: arrows step rocks
   scrub.setAttribute("aria-label", "Position in the video");
   full.textContent = "⛶";
-  full.title = "Full screen";
+  full.title = "Full screen (f)";
 
   let dragging = false;
   const paint = () => {
@@ -170,12 +177,7 @@ function controlBar(box, v, offset) {
   // Let go of the keyboard with the mouse: a focused slider takes the arrow
   // keys, and the next press should step a rock, not nudge the video.
   scrub.addEventListener("change", () => { dragging = false; scrub.blur(); });
-  full.addEventListener("click", () => {
-    const on = document.fullscreenElement ?? document.webkitFullscreenElement;
-    const done = on ? (document.exitFullscreen ?? document.webkitExitFullscreen)?.call(document)
-                    : (box.requestFullscreen ?? box.webkitRequestFullscreen)?.call(box);
-    done?.catch?.(() => {});                 // refused (an embedded pane): nothing to do about it
-  });
+  full.addEventListener("click", toggleFullscreen);
 
   let timer = null, at = null;
   const hide = () => {
@@ -220,6 +222,7 @@ export function seek(t, autoplay) {
     return;
   }
   player.seekTo(t, true);
+  lastSeek = { t, at: now() };
   if (autoplay) player.playVideo();
 }
 
@@ -257,4 +260,71 @@ export function togglePlay() {
   }
   if (!player || player === "none" || !ready) return;
   player.getPlayerState() === 1 ? player.pauseVideo() : player.playVideo();
+}
+
+/* A jump from wherever the playhead is: the page's j and l (ten seconds) and
+ * Shift with an arrow (five), the keys YouTube's own player answers. Playing
+ * or paused, it stays as it was. A file is held to its own length, so that
+ * l near the end lands on the end rather than handing the game to YouTube
+ * (seek() gives up a file asked for a moment past it). */
+export function seekBy(dt) {
+  let t = currentTime();
+  if (t === null) return;
+  // YouTube answers getCurrentTime from its last report, which a seekTo has
+  // not reached yet: l l l in quick succession would each count from the
+  // same old time. Inside the settle window, count from the seek itself.
+  if (!own && lastSeek && now() - lastSeek.at < SEEK_SETTLE_MS)
+    t = lastSeek.t + (isPlaying() ? (now() - lastSeek.at) / 1000 : 0);
+  let to = Math.max(0, t + dt);
+  if (own) {
+    to = Math.max(to, own.offset);
+    const d = own.el.duration;
+    if (Number.isFinite(d)) to = Math.min(to, own.offset + d);
+  }
+  seek(to, false);
+}
+
+/* The sound on or off: m, as on YouTube. Both players start muted. */
+export function toggleMute() {
+  if (own) { if (ready) own.el.muted = !own.el.muted; return; }
+  if (!player || player === "none" || !ready) return;
+  player.isMuted() ? player.unMute() : player.mute();
+}
+
+/* The video full screen or back: f, as on YouTube, and the file's ⛶. What
+ * goes full screen is the video's box, so the file's controls go with it. A
+ * browser that refuses (an embedded pane) is left to say nothing. */
+export function toggleFullscreen() {
+  const box = container;
+  if (!box || player === "none") return;     // nothing to show: the box says so already
+  const on = document.fullscreenElement ?? document.webkitFullscreenElement;
+  const done = on ? (document.exitFullscreen ?? document.webkitExitFullscreen)?.call(document)
+                  : (box.requestFullscreen ?? box.webkitRequestFullscreen)?.call(box);
+  done?.catch?.(() => {});
+}
+
+/* YouTube's frame keeps the keyboard once it is clicked: every key after
+ * that goes to YouTube's own shortcuts, none to the page, until something on
+ * the page is clicked. So the page takes it back as soon as the click has
+ * landed. The click itself still reaches YouTube (a pointer goes where it
+ * points, focus or not), so a click still plays and pauses; the page's keys
+ * stand in for YouTube's: j, k and l, Space, Shift with an arrow, m and f.
+ *
+ * Focus that arrives by Tab is left where it went: someone on the keyboard
+ * alone is going to YouTube's own controls (captions, quality), and Tab
+ * brings them back out.
+ *
+ * The frame is cross-origin: the page never sees its keys or its clicks,
+ * only that the window lost focus, and to what. */
+const TAB_GRACE_MS = 500;
+function keepKeys(el) {
+  let tabAt = -Infinity;
+  window.addEventListener?.("keydown", e => { if (e.key === "Tab") tabAt = now(); }, true);
+  window.addEventListener?.("blur", () => {
+    if (now() - tabAt < TAB_GRACE_MS) return;
+    setTimeout(() => {
+      const f = document.activeElement;
+      if (f?.tagName === "IFRAME" && el.contains?.(f)) f.blur();
+    }, 0);
+  });
 }

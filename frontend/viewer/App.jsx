@@ -43,6 +43,7 @@ import { ShotClipDialog } from "./ShotClip.jsx";
 import { DeliveryDialog } from "./DeliveryDialog.jsx";
 import { ThinkingDialog } from "./ThinkingDialog.jsx";
 import { EndDialog } from "./EndDialog.jsx";
+import { KeysDialog, KEYS_ICON, JUMP_SEEK_S, SHIFT_SEEK_S, TOGGLE_KEYS } from "./KeysDialog.jsx";
 import { Watch } from "./Watch.jsx";
 import { ViewOnly } from "./ViewOnly.jsx";
 import { useSwipe } from "./Pager.jsx";
@@ -98,7 +99,7 @@ export function App({ doc, config, cursor, reload }) {
     return {
       gi: 0, ei: 0, si: 0, selStone: null, placeColor: "red", openGroup: null,
       sheet: prefs.sheetMin ? "min" : "peek", houseMode: "", menu: undefined, reporting: false, flagging: null, playing: null,
-      naming: null, clipping: null, delivering: null, thinking: false, ending: null, prefs: false,
+      naming: null, clipping: null, delivering: null, thinking: false, ending: null, prefs: false, keys: false,
       notice: null,
       following: true,
       // A link or a restored session names a rock the video is not at yet:
@@ -160,6 +161,7 @@ export function App({ doc, config, cursor, reload }) {
   const closeDelivering = useCallback(() => dispatch({ type: "set", patch: { delivering: null } }), []);
   const closeThinking = useCallback(() => dispatch({ type: "set", patch: { thinking: false } }), []);
   const closeEnding = useCallback(() => dispatch({ type: "set", patch: { ending: null } }), []);
+  const closeKeys = useCallback(() => dispatch({ type: "set", patch: { keys: false } }), []);
   // Leaving the desk layouts unmounts the two dialogs only they render, and
   // the playback gear's popover; drop their state so coming back does not
   // reopen a stale one. Only when one is open: a narrow or phone page has
@@ -168,11 +170,13 @@ export function App({ doc, config, cursor, reload }) {
   useEffect(() => {
     if (!desk && wideOpen) dispatch({ type: "set", patch: { delivering: null, thinking: false, prefs: false } });
   }, [desk, wideOpen]);
-  // The end at a glance is the desktop's, every desktop's: the portrait iPad
-  // does not render it.
+  // The end at a glance and the keyboard's shortcuts are the desktop's, every
+  // desktop's: the portrait iPad renders neither. A ? typed there, or a
+  // rotation into portrait with either open (the unmount fires no close),
+  // would otherwise leave it to open by itself on the way back.
   useEffect(() => {
-    if (tablet && ui.ending) dispatch({ type: "set", patch: { ending: null } });
-  }, [tablet, ui.ending]);
+    if (tablet && (ui.ending || ui.keys)) dispatch({ type: "set", patch: { ending: null, keys: false } });
+  }, [tablet, ui.ending, ui.keys]);
 
   /* --------------------------------------------------------------- actions */
 
@@ -458,7 +462,10 @@ export function App({ doc, config, cursor, reload }) {
   useEffect(() => {
     const typing = e => {
       const el = e.target;
-      return el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+      // A checkbox (the playback settings') takes no typing: the keys go on
+      // working while it has focus. Every other field keeps them.
+      return el && ((el.tagName === "INPUT" && el.type !== "checkbox")
+                    || el.tagName === "TEXTAREA" || el.isContentEditable);
     };
     const onKey = ev => {
       // Behind an open dialog -- the flag's, I played…, a score -- nothing
@@ -466,10 +473,29 @@ export function App({ doc, config, cursor, reload }) {
       // of them would otherwise also mark the rock behind it charted.
       if (document.querySelector("dialog[open]")) return;
       if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+      // A held key repeats a step or a jump, never a toggle.
+      if (ev.repeat && TOGGLE_KEYS.includes(ev.key)) return;
       if (typing(ev)) { if (ev.key === "Escape") ev.target.blur(); return; }
       switch (ev.key) {
-        case "ArrowLeft":  if (ui.si > 0) goTo(ui.ei, ui.si - 1); break;
-        case "ArrowRight": if (ui.si < shots.length - 1) goTo(ui.ei, ui.si + 1); break;
+        // Shift with an arrow moves the video, as it does on YouTube; the
+        // arrow alone steps a rock. The video's own keys follow (KeysDialog
+        // lists them): YouTube's player would have answered them, had it
+        // kept the keyboard (runtime/player.mjs, keepKeys).
+        case "ArrowLeft":  if (ev.shiftKey) { player.seekBy(-SHIFT_SEEK_S); break; }
+                           if (ui.si > 0) goTo(ui.ei, ui.si - 1); break;
+        case "ArrowRight": if (ev.shiftKey) { player.seekBy(SHIFT_SEEK_S); break; }
+                           if (ui.si < shots.length - 1) goTo(ui.ei, ui.si + 1); break;
+        case "j": player.seekBy(-JUMP_SEEK_S); break;
+        case "l": player.seekBy(JUMP_SEEK_S); break;
+        case "k": player.togglePlay(); break;
+        // Space as YouTube has it, but only where nothing on the page has
+        // focus: on a focused button it is still that button's press.
+        case " ": if (ev.target !== document.body && ev.target !== document.documentElement) return;
+                  player.togglePlay(); break;
+        case "m": player.toggleMute(); break;
+        case "f": player.toggleFullscreen(); break;
+        // ev.key is the character typed, on every layout: "?" is enough.
+        case "?": dispatch({ type: "set", patch: { keys: true } }); break;
         case "n": { const it = nextBlankAfter(queue, ui.ei, ui.si);
                     if (it) goTo(it.ei, it.si); break; }
         case "r": dispatch({ type: "set", patch: { placeColor: "red" } }); break;
@@ -526,6 +552,13 @@ export function App({ doc, config, cursor, reload }) {
   const nextBtn = (
     <button id="next" title="Next shot (→)" disabled={ui.si >= shots.length - 1}
             onClick={() => goTo(ui.ei, ui.si + 1)}>→</button>
+  );
+  // The keyboard's shortcuts, in both transports (one renders at a time).
+  // CSS hides it where there is no keyboard to speak of.
+  const keysBtn = (
+    <button id="keysBtn" type="button" title="Keyboard shortcuts (?)"
+            aria-label="Keyboard shortcuts" aria-haspopup="dialog"
+            onClick={() => dispatch({ type: "set", patch: { keys: true } })}>{KEYS_ICON}</button>
   );
   const replayBtn = (
     <button id="replay" title="Replay from before the throw (v)" onClick={() => seek(t)}>↻ Replay</button>
@@ -615,12 +648,13 @@ export function App({ doc, config, cursor, reload }) {
                 /* Wraps at the narrow end of the wide layout, never past the
                    card: the arrows stay round the chips, replay and mark
                    charted follow while they fit, and the link and the gear
-                   keep together at the right. */
+                   keep together at the right, the shortcuts between them. */
                 <div className="row transport" id="transport">
                   <div className="tp-rock">{prevBtn}{shotChips}{nextBtn}</div>
                   {replayBtn}{markBtn}
                   <div className="tp-end">
                     {ytLink}
+                    {keysBtn}
                     <button id="playGear" type="button" title="Playback: play on jump, pause after each rock, lead-in"
                             aria-label="Playback settings" aria-controls="playPrefs"
                             aria-expanded={String(!!ui.prefs)}
@@ -637,7 +671,7 @@ export function App({ doc, config, cursor, reload }) {
           ) : (
             <>
               <div className="row transport" id="transport">
-                {prevBtn}{nextBtn}{replayBtn}{markBtn}{labelEl}{ytLink}
+                {prevBtn}{nextBtn}{replayBtn}{markBtn}{labelEl}{ytLink}{keysBtn}
               </div>
               {playback}
               {flags}
@@ -763,6 +797,9 @@ export function App({ doc, config, cursor, reload }) {
         <ThinkingDialog open={ui.thinking} series={series} here={here} bars={ui.clockBars}
                         actions={actions} onClose={closeThinking} />
       ) : null}
+      {tablet ? null : (
+        <KeysDialog open={ui.keys} readOnly={config.readOnly} onClose={closeKeys} />
+      )}
       {tablet ? null : (
         <EndDialog ending={ui.ending} view={view} at={ui.ending?.ei === ui.ei ? ui.si : null}
                    showTrack={ui.showTrack} actions={actions} onClose={closeEnding} />
