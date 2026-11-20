@@ -52,6 +52,16 @@ const started = (async () => {
   let cfg = {};
   try { cfg = await (await fetch("/api/auth/config")).json(); } catch { /* offline */ }
   if (!cfg.enabled) { ready = true; announce(); return; }
+  // One person on their own computer (service/auth.py LocalPerson): signed in
+  // already, with the token the server handed over. No SDK, no dialog.
+  if (cfg.local) {
+    const { uid, name, token } = cfg.local;
+    auth = { local: true };
+    user = { uid, displayName: name, email: null, getIdToken: async () => token };
+    ready = true;
+    announce();
+    return;
+  }
   try {
     const [app, sdk] = await Promise.all([
       import(/* @vite-ignore */ `${SDK}firebase-app.js`),
