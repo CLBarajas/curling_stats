@@ -137,6 +137,94 @@ class TestTheFirstEndIsCountedFromTheRecordingsStart:
         assert analyze.search_turnaround(1815.0, 1815.0) == sidereleases.TURNAROUND_S
 
 
+class TestAFirstEndCountedShortIsCountedAgainFromTheStart:
+    """Rochester sheet C 11/19 (DRnZcsO9-Zs) opened with four guards, which a
+    house-only overhead never shows. The end "began" at 5:45, its run-up at
+    1:45, and blue's first stone had left the hack at 1:34: the throwing
+    camera counted 15, every rock was numbered one early, and red's hammer
+    went to blue."""
+
+    @staticmethod
+    def seen(n, first="red", repeat_at=None):
+        colours = ["red", "yellow"] if first == "red" else ["yellow", "red"]
+        out = [(colours[i % 2], SimpleNamespace(t_ref=125.0 + 45.0 * i)) for i in range(n)]
+        if repeat_at is not None:
+            out[repeat_at] = (out[repeat_at - 1][0], out[repeat_at][1])
+        return out
+
+    def test_a_first_end_counted_short_from_a_late_run_up_is_counted_again(self):
+        assert analyze.counted_again_from_the_start(
+            True, None, 105.0, 0.0, self.seen(15), 16) is True
+
+    def test_so_is_one_whose_colours_are_not_in_turn(self):
+        assert analyze.counted_again_from_the_start(
+            True, None, 105.0, 0.0, self.seen(16, repeat_at=7), 16) is True
+
+    def test_an_end_counted_in_turn_is_never_read_twice(self):
+        # Sheet A 11/4 and sheet B 11/18: run-ups at 120 s and 40 s, 16 in turn.
+        assert analyze.counted_again_from_the_start(
+            True, None, 120.0, 0.0, self.seen(16), 16) is False
+
+    def test_a_run_up_that_begins_with_the_recording_has_nowhere_earlier_to_look(self):
+        assert analyze.counted_again_from_the_start(
+            True, None, 0.0, 0.0, self.seen(15), 16) is False
+        assert analyze.counted_again_from_the_start(
+            True, None, 4760.0, 5000.0, self.seen(15), 16) is False   # --start 5000
+
+    def test_a_later_end_keeps_its_own_run_up(self):
+        assert analyze.counted_again_from_the_start(
+            True, 1030.0, 1030.0, 0.0, self.seen(15), 16) is False
+
+    def test_only_where_the_throwing_camera_counts_the_end(self):
+        assert analyze.counted_again_from_the_start(
+            False, None, 105.0, 0.0, [], 16) is False
+
+    def test_the_second_count_stands_only_if_it_is_an_end_in_turn(self):
+        """On containers of its own, from the recording's first moment with no
+        turnaround, and swapped in only once it has come out clean: the first
+        count is otherwise left exactly as it was."""
+        from pathlib import Path
+        src = (Path(__file__).resolve().parents[1] / "src/curling_score/analyze.py").read_text()
+        body = src[src.index("        if counted_again_from_the_start("):][:1300]
+        assert "search(ctx.recording_start_s, 0.0, again_vouched, again_seen, again_pairs)" in body
+        i_clean = body.index("census_is_clean(again_seen, fmt.delivered_per_end)")
+        i_time = body.index("keeps_the_end_s_time(again_seen, since + turnaround_s)")
+        i_swap = body.index("lost, seen, pairs = again, again_seen, again_pairs")
+        assert i_clean < i_time < i_swap < body.index("        if lost:")
+        assert "vouched.update(again_vouched)" in body[i_swap:]
+
+
+class TestTheSecondCountKeepsTheEndsOwnTime:
+    """A slide before the first count began is the end's when the next throw
+    follows it as the end's own throws follow one another. Sheet C 11/19: the
+    game's first stone at 1:34, the second 51 s later, the rest 37 to 105 s
+    apart."""
+
+    @staticmethod
+    def seen(*times):
+        colours = ("yellow", "red")
+        return [(colours[i % 2], SimpleNamespace(t_ref=t)) for i, t in enumerate(times)]
+
+    def test_a_first_stone_followed_in_turn_is_the_end_s(self):
+        got = self.seen(93.5, 144.6, 188.6, 236.6, 279.1, 332.6, 369.8, 439.6, 477.8,
+                        523.4, 563.3, 623.9, 707.2, 795.6, 866.8, 971.6)
+        assert analyze.keeps_the_end_s_time(got, 125.0) is True
+
+    def test_a_slide_minutes_before_the_first_stone_is_practice(self):
+        got = self.seen(20.0, 341.7, 386.0, 431.0, 480.0, 522.0)
+        assert analyze.keeps_the_end_s_time(got, 140.0) is False
+
+    def test_two_before_the_run_up_must_both_keep_time(self):
+        assert analyze.keeps_the_end_s_time(self.seen(40.0, 95.0, 150.0, 200.0, 262.0), 125.0) is True
+        assert analyze.keeps_the_end_s_time(self.seen(5.0, 95.0, 150.0, 200.0, 262.0), 125.0) is False
+
+    def test_a_count_with_nothing_earlier_has_nothing_to_doubt(self):
+        assert analyze.keeps_the_end_s_time(self.seen(130.0, 180.0, 230.0), 125.0) is True
+
+    def test_nothing_after_the_run_up_gives_no_pace_to_keep(self):
+        assert analyze.keeps_the_end_s_time(self.seen(40.0, 95.0), 125.0) is False
+
+
 class TestTheRunUpStartsWhereThePreviousEndClosed:
     """The segmenter opens an end when a stone first rests in its house, so
     first rocks thrown before that -- through the house, or just early --
