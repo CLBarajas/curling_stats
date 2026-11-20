@@ -2,14 +2,14 @@
 
 This is my copy of curling_stats, set up for our club's sheet streams: Rochester Curling Club, in Rochester, New York. It watches a game's YouTube stream and charts every rock. Who threw it, by position. Where it stopped. Where the cameras allow, the line it was thrown on against the skip's broom, and its hog-to-hog time. Each team's thinking time, and the score off the wall board.
 
-How good is it? Five games so far, across all four sheets. It found 123, 127 and 127 rocks of 128 on three of them, all 112 of a seven-end game, and all 96 of a six-end one. I've checked the doubtful ones against the video in two of those games, and some in two more. It's close. It isn't perfect.
+How good is it? Six games so far, across all four sheets. It found 123, 127 and 128 rocks of 128 on three of them, all 112 of a seven-end game, and all 96 of two six-end ones. I've checked the doubtful ones against the video in two of those games, and some in two more. It's close. It isn't perfect.
 
 What it can't do yet:
 
 - Name the players. It knows the order, lead to skip, not the people.
 - Place a guard as precisely as a stone in the house. Our overhead cameras only see the house.
 - Read spin.
-- Prove itself on games beyond those five.
+- Prove itself on games beyond those six.
 
 To look at a game, go to [FifthSense](https://fifthsense.barajas.io/). Pick one and step through it a rock at a time, with the stream beside it.
 
