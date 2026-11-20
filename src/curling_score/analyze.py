@@ -252,6 +252,47 @@ def search_turnaround(prev_end_s, since: float, recording_start_s: float = 0.0) 
     return sidereleases.TURNAROUND_S
 
 
+def counted_again_from_the_start(census: bool, prev_end_s, since: float,
+                                 recording_start_s: float, seen, per_end: int) -> bool:
+    """Whether the video's first end is counted again from the recording's
+    first moment: the throwing camera counts ends here (``census``), nothing
+    closed before this one, its run-up begins after the recording does, and
+    the count from there is not an end in turn.
+
+    The first end's run-up is the game gap before the segmenter saw it begin
+    (`run_up_from`), and the segmenter sees an end begin when a stone rests in
+    its house. An end that opens with guards a house-only overhead never shows
+    begins late: Rochester sheet C 11/19 (DRnZcsO9-Zs) opened with four, the
+    end "began" at 5:45, its run-up at 1:45 and the search at 2:05, and the
+    game's first stone, blue, had left the hack at 1:34. The count came to 15,
+    every rock was numbered one early, and the hammer went to the wrong team.
+
+    The second count stands only if it is an end in turn whose earlier slides
+    keep the end's own time (`keeps_the_end_s_time`); otherwise the first is
+    kept as it was. So an end already counted clean is never read twice, and
+    slides before a game -- practice, or stones being set out -- can cost
+    nothing but the second read."""
+    return bool(census and prev_end_s is None and since > recording_start_s
+                and not sidereleases.census_is_clean(seen, per_end))
+
+
+def keeps_the_end_s_time(again_seen, first_s: float) -> bool:
+    """Whether the slides a second count found before ``first_s``, where the
+    first count began, are this end's: each is followed by the next throw no
+    later than the end's own throws follow one another at their slowest.
+
+    A game's first stone is followed by its second in turn (sheet C 11/19:
+    51 s, in an end whose throws came 37 to 105 s apart). A slide minutes
+    before the first stone is practice, and a count that takes one in comes to
+    an end in turn only by having lost a throw somewhere else."""
+    times = [s.t_ref for _c, s in again_seen]
+    n = sum(1 for t in times if t < first_s)
+    if not n:
+        return True
+    gaps = [b - a for a, b in zip(times, times[1:])]
+    return bool(gaps[n:]) and max(gaps[:n]) <= max(gaps[n:])
+
+
 def run_up_from(prev_end_s, start_s: float, *, crossed_games: bool = False) -> float:
     """Where an end's run-up begins: the moment the previous end closed.
 
@@ -861,14 +902,33 @@ def build_one_end(ctx: EndContext, game, end, prev_end_s, board_score, first_col
     seen, pairs = [], []
     if throw_view is not None and (census or 0 < short <= limit):
         stages.mark("rules")
-        lost = sidereleases.lost_rocks(
-            path, throw_view,
-            kept=kept, releases=releases, thrown_by=thrown_by, arrivals=arrivals,
-            house_frames=seq, t0=since, t1=end.end_s, vouched=vouched,
-            per_end=fmt.delivered_per_end, whole=census, seen=seen if census else None,
-            pairs=pairs,
-            turnaround_s=search_turnaround(prev_end_s, since, ctx.recording_start_s))
+
+        def search(t0, turnaround_s, vouched, seen, pairs):
+            return sidereleases.lost_rocks(
+                path, throw_view,
+                kept=kept, releases=releases, thrown_by=thrown_by, arrivals=arrivals,
+                house_frames=seq, t0=t0, t1=end.end_s, vouched=vouched,
+                per_end=fmt.delivered_per_end, whole=census, seen=seen if census else None,
+                pairs=pairs, turnaround_s=turnaround_s)
+
+        turnaround_s = search_turnaround(prev_end_s, since, ctx.recording_start_s)
+        lost = search(since, turnaround_s, vouched, seen, pairs)
         stages.mark("lost")
+        if counted_again_from_the_start(census, prev_end_s, since, ctx.recording_start_s,
+                                        seen, fmt.delivered_per_end):
+            # On containers of its own: the first count stands unless this one
+            # is an end in turn, at the end's own pace.
+            again_vouched, again_seen, again_pairs = set(), [], []
+            again = search(ctx.recording_start_s, 0.0, again_vouched, again_seen, again_pairs)
+            stages.mark("lost")
+            if (sidereleases.census_is_clean(again_seen, fmt.delivered_per_end)
+                    and keeps_the_end_s_time(again_seen, since + turnaround_s)):
+                progress(f"    end {end.number}: the throwing camera counted {len(seen)} slide(s) "
+                         f"from its run-up; counted again from the recording's start, "
+                         f"{len(again_seen)}")
+                lost, seen, pairs = again, again_seen, again_pairs
+                vouched.clear()
+                vouched.update(again_vouched)
         if lost:
             progress(f"    end {end.number}: {len(lost)} rock(s) the overhead saw at "
                      f"neither end, from the long camera")
