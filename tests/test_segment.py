@@ -42,6 +42,73 @@ class TestEndsAlternate:
         assert [e.house for e in ends] == ["bottom", "top"]
 
 
+class TestATiedVoteNamesTheBottom:
+    """`_smooth`'s vote on which house is in play, with as many keyframes of
+    one as of the other in its window: it went by the order of a set of the
+    two names, which changes with each process's hash seed, so two runs of
+    one game could put an end boundary a keyframe apart. Rochester sheet B
+    11/18 (QU4XN1R19TA): end 4 to 4090 s or 4095 s; sheet C 11/19
+    (DRnZcsO9-Zs): to 3980 s or 3985 s."""
+
+    def test_whichever_house_came_first(self):
+        up = ["bottom", "bottom", None, "top", "top"]
+        down = ["top", "top", None, "bottom", "bottom"]
+        assert segment._smooth(up) == ["bottom", "bottom", "bottom", "top", "top"]
+        assert segment._smooth(down) == ["top", "top", "bottom", "bottom", "bottom"]
+
+    def test_a_majority_still_wins(self):
+        assert segment._smooth(["top", "top", "bottom", "top", None])[2] == "top"
+        assert segment._smooth(["bottom", "top", "top", None, None])[1] == "top"
+
+    def test_the_keyframe_between_two_ends_goes_to_the_bottom_s(self):
+        # One empty keyframe at 900 s between the two ends: two of each either side.
+        ends = segment.segment_games(profile([(180, 0, 6), (1, 0, 0), (180, 5, 0)]))[0].ends
+        assert [(e.house, e.start_s, e.end_s) for e in ends] == [
+            ("bottom", 0.0, 900.0), ("top", 905.0, 1800.0)]
+        ends = segment.segment_games(profile([(180, 5, 0), (1, 0, 0), (180, 0, 6)]))[0].ends
+        assert [(e.house, e.start_s, e.end_s) for e in ends] == [
+            ("top", 0.0, 895.0), ("bottom", 900.0, 1800.0)]
+
+    def test_the_answer_is_the_same_whatever_the_hash_seed(self):
+        """Each seed in a process of its own, as each run is. Before the rule,
+        seeds 0 and 1 put the boundary on either side of the empty keyframe."""
+        import json
+        import os
+        import subprocess
+        import sys
+        from pathlib import Path
+
+        code = (
+            "import json\n"
+            "from curling_score.game import segment\n"
+            "S = segment.Sample\n"
+            "def profile(spec):\n"
+            "    out, t = [], 0.0\n"
+            "    for n, top, bot in spec:\n"
+            "        for _ in range(n):\n"
+            "            out.append(S(t=t, top_stones=top, bottom_stones=bot,\n"
+            "                         top_playable=True, bottom_playable=True))\n"
+            "            t += 5.0\n"
+            "    return out\n"
+            "ends = segment.segment_games(profile([(180, 0, 6), (1, 0, 0), (180, 5, 0),\n"
+            "                                      (1, 0, 0), (180, 0, 7)]))[0].ends\n"
+            "print(json.dumps({'order': list({'top', 'bottom'}),\n"
+            "                  'ends': [[e.house, e.start_s, e.end_s] for e in ends]}))\n"
+        )
+        src = str(Path(segment.__file__).resolve().parents[2])
+        got = {}
+        for seed in range(6):
+            env = {**os.environ, "PYTHONHASHSEED": str(seed), "PYTHONPATH": src}
+            out = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True,
+                                 text=True, check=True).stdout
+            got[seed] = json.loads(out.strip().splitlines()[-1])
+        # The test means something only if the seeds gave the set both orders.
+        assert {tuple(g["order"]) for g in got.values()} == {("top", "bottom"), ("bottom", "top")}
+        assert all(g["ends"] == got[0]["ends"] for g in got.values()), got
+        assert got[0]["ends"] == [["bottom", 0.0, 900.0], ["top", 905.0, 1800.0],
+                                  ["bottom", 1805.0, 2705.0]]
+
+
 class TestAHouseClearedMidEnd:
     """10/01 Thursday Morning sheet 2, end 4: a takeout left the top house
     empty for 50 s, and one stray stone in the bottom panel in that time --
@@ -246,9 +313,9 @@ class TestFridayEveningSheet5:
 
     def test_end_6_runs_across_the_skip_at_the_far_end(self):
         end6 = segment.segment_games(_fixture("uKWnmVG9mA8"))[0].ends[5]
-        # The start moves a keyframe with the hash seed (`_smooth`'s tie-break).
-        assert (end6.house, end6.end_s) == ("top", 7015.0)
-        assert end6.start_s == pytest.approx(5935.0, abs=5)
+        # The start moved a keyframe with the hash seed until `_smooth`'s tied
+        # vote was given a rule (`TestATiedVoteNamesTheBottom`).
+        assert (end6.house, end6.start_s, end6.end_s) == ("top", 5935.0, 7015.0)
 
 
 class TestSundaySkipsSheet1:
@@ -257,9 +324,9 @@ class TestSundaySkipsSheet1:
 
     def test_end_1_begins_with_the_game(self):
         ends = segment.segment_games(_fixture("1MK77SP66GE"))[0].ends
-        # 177.5 or 180.0 with the hash seed (`_smooth`'s tie-break), as ds17b's.
-        assert (ends[0].house, ends[0].end_s) == ("bottom", 737.5)
-        assert ends[0].start_s == pytest.approx(178.75, abs=1.25)
+        # 177.5 or 180.0 with the hash seed, as ds17b's, until `_smooth`'s tied
+        # vote was given a rule: the bottom's, so the end takes the keyframe.
+        assert (ends[0].house, ends[0].start_s, ends[0].end_s) == ("bottom", 177.5, 737.5)
 
     def test_its_seven_ends_alternate(self):
         ends = segment.segment_games(_fixture("1MK77SP66GE"))[0].ends
