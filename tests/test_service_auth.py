@@ -125,6 +125,32 @@ class TestAccountsCanBeOff:
         assert no_accounts["client"].get(r.json()["chart_url"]).status_code == 200
 
 
+class TestOnePersonOnTheirOwnComputer:
+    """auth.LocalPerson: scripts/myshots_local.py's one person, signed in
+    already, with no Firebase project."""
+
+    @pytest.fixture
+    def local(self):
+        from curling_score.service.auth import LocalPerson
+        return _world(LocalPerson(uid="local", name="Bauman", token="tok-local"))
+
+    def test_the_config_names_the_person_and_their_token(self, local):
+        cfg = local["client"].get("/api/auth/config").json()
+        assert cfg == {"enabled": True,
+                       "local": {"uid": "local", "name": "Bauman", "token": "tok-local"}}
+
+    def test_that_token_is_the_person(self, local):
+        me = local["client"].get("/api/me", headers={"Authorization": "Bearer tok-local"})
+        assert me.json()["user"]["id"] == "local"
+
+    def test_any_other_token_is_nobody(self, local):
+        assert local["client"].get("/api/me", headers=SARAH).status_code == 401
+
+    def test_each_start_gets_a_new_token(self):
+        from curling_score.service.auth import LocalPerson
+        assert LocalPerson().token != LocalPerson().token
+
+
 class TestSigningIn:
     def test_the_config_carries_the_public_firebase_settings(self, w):
         cfg = w["client"].get("/api/auth/config").json()
