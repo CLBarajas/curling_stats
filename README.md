@@ -472,7 +472,10 @@ detector could not read and grade the shot as a coach would.
 Keys: `←`/`→` shots within the end, `n` next blank, `r`/`y` stone colour, `x`
 delete, `d` mark the delivered stone, `c` recolour, `t` track overlay, `v`
 replay, `p` play/pause, `0`–`4` grade, `Enter` mark charted and move on, `Esc`
-close the report.
+close the report. The video's keys are YouTube's: `j`/`l` back or forward
+10 s, `Shift`+`←`/`→` 5 s, `k` or `Space` play/pause, `m` sound, `f` full
+screen; clicking the video no longer takes the keyboard away from the page.
+`?` shows them all (`frontend/viewer/KeysDialog.jsx`).
 
 Everything you enter is written to `out/overrides.json` as you go. The viewer
 POSTs it back to its own server, and `⬇` in the `⋯` menu downloads it if the

@@ -3128,10 +3128,15 @@ class TestTheAppKnowsItsTab:
 
     def test_the_video_starts_muted(self):
         """The player comes up with its sound off; the watcher turns it on in
-        the player's own controls. Nothing else in the page mutes or unmutes."""
+        the player's own controls, or with m (2026-11-20). Nothing else in the
+        page mutes or unmutes: only toggleMute does, and only m calls it."""
         src = (Path(__file__).resolve().parents[1] / "frontend/runtime/player.mjs").read_text()
         assert "playerVars: { rel: 0, playsinline: 1, modestbranding: 1, mute: 1," in src
-        assert ".unMute(" not in src and ".mute(" not in src
+        body = src[src.index("export function toggleMute()"):].split("\n}\n")[0]
+        rest = src.replace(body, "")
+        assert ".unMute(" not in rest and ".mute(" not in rest
+        app = self.APP.read_text()
+        assert app.count("toggleMute(") == 1 and 'case "m": player.toggleMute()' in app
 
     def test_the_tab_and_rock_are_written_to_the_hash(self):
         src = self.APP.read_text()
@@ -6880,7 +6885,7 @@ class TestTheDeliveryDialog:
         # The padding is the wrapper's, so the backdrop is the only thing that reaches the dialog.
         assert '<div className="dd-body">' in src
         css = (Path(__file__).resolve().parents[1] / "src/curling_score/viewer/style.css").read_text()
-        rule = css[css.index("#deliveryDialog, #thinkingDialog, #endDialog {"):].split("}")[0]
+        rule = css[css.index("#deliveryDialog, #thinkingDialog, #endDialog, #keysDialog {"):].split("}")[0]
         assert "padding: 0" in rule
         assert ".dd-body { padding: 16px 24px 18px" in css
 

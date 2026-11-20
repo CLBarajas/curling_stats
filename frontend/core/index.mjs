@@ -24,3 +24,4 @@ export * from "./shotclip.mjs";
 export * from "./site.mjs";
 export * from "./tablet.mjs";
 export * from "./houseimage.mjs";
+export * from "./video.mjs";
