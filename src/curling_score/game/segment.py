@@ -119,7 +119,21 @@ def _active_house(samples) -> list[str | None]:
 
 
 def _smooth(active: list[str | None]) -> list[str | None]:
-    """Fill short gaps and drop short blips using a windowed majority vote."""
+    """Fill short gaps and drop short blips using a windowed majority vote.
+
+    A tied vote names the bottom, as a tie of stone counts does
+    (`_active_house`). It used to name whichever house ``set(window)`` gave
+    first, and a set of strings is ordered by a hash seed Python draws afresh
+    for every process: so each run tossed a coin, and at a change of ends
+    with as many keyframes of one house as of the other in the window, the
+    boundary fell one keyframe either way from one run of a game to the next.
+    Rochester sheet B 11/18 (QU4XN1R19TA) ended its end 4 at 4090 s in some
+    runs and 4095 s in others, sheet C 11/19 (DRnZcsO9-Zs) at 3980 or 3985 s,
+    each with the same keyframe counts; the two ends either side then had
+    their detections made afresh on the new span, and two charts of one game
+    by the same code were not the same chart. Sorted, the vote is what it was
+    in the runs where the set happened to give the bottom first.
+    """
     n = len(active)
     out: list[str | None] = list(active)
     half = SMOOTH_SAMPLES // 2
@@ -129,7 +143,7 @@ def _smooth(active: list[str | None]) -> list[str | None]:
         if not window:
             out[i] = None
             continue
-        out[i] = max(set(window), key=window.count)
+        out[i] = max(sorted(set(window)), key=window.count)
     return out
 
 

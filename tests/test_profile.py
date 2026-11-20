@@ -120,12 +120,11 @@ class TestThursdayMensSheet1:
         samples, _, _ = _fixture()
         games, reads = self._split(samples)
         assert [len(g.ends) for g in games] == [7, 3]
-        # End 7 stops at its last rock, not 400 s later. Boundaries move a
-        # keyframe with the hash seed (`segment._smooth`'s tie-break).
-        assert games[0].end_s == pytest.approx(6540.0, abs=5)
-        assert games[1].start_s == pytest.approx(6920.0, abs=5)
-        ((t0, t1),) = reads
-        assert (t0, t1) == (pytest.approx(6240.0, abs=5), pytest.approx(7520.0, abs=5))
+        # End 7 stops at its last rock, not 400 s later. Boundaries moved a
+        # keyframe with the hash seed until `segment._smooth`'s tied vote was
+        # given a rule; these are the bottom's.
+        assert (games[0].end_s, games[1].start_s) == (6535.0, 6915.0)
+        assert reads == [(6235.0, 7515.0)]
 
     def test_on_the_colour_thresholds_it_did_not(self):
         _, thresholds, _ = _fixture()
