@@ -352,26 +352,48 @@ TYPICAL_LAG_S = 17.0
 def scan_points(video, view, t0, t1, *, fps=SCAN_FPS, model=None, decode=None,
                 detect=None) -> dict:
     """Both colours' centre-line points over ``t0..t1``, as ``side_points``
-    gives one colour's: each stretch of video is decoded once for both."""
+    gives one colour's: each stretch of video is decoded once and read by the
+    detector once, for both.
+
+    The detector's boxes carry their colour, so one pass over a stretch gives
+    both colours' (`sidemodel.detect_bands`); a pass a colour read every frame
+    twice, and the scan is the largest part of a census end. The stretches are
+    the same ones, decoded by the same commands, each while the one before it
+    is read (`longview.Plan`): the GPU sat idle through every decode.
+    Rochester sheet B 11/18 (QU4XN1R19TA) end 1 on an Apple GPU: the scan was
+    112 s of the end's 258, the detector 69 of them on 5,750 frames read
+    twice and the decodes 30; it is 45 s so, and the end built from it the
+    same in every field.
+    """
+    from contextlib import nullcontext
+
+    from curling_score.detect import longview, sidemodel
+
+    spans = []
+    t = t0
+    while t < t1:
+        spans.append((t, min(t + SCAN_CHUNK_S, t1)))
+        t += SCAN_CHUNK_S
+    ahead = nullcontext()
     if decode is None:
-        from curling_score.detect import longview
-        decode = longview.decode
+        decode = longview.Plan(video, [(view.rect, a, b, fps) for a, b in spans]).decode
+        ahead = longview.reading_ahead()
     if detect is None:
-        from curling_score.detect import sidemodel
-        detect = sidemodel.detect_band
+        both = sidemodel.detect_bands
+    else:
+        # A stand-in for one colour, asked once per colour.
+        def both(model, frames, times, lo, hi, colors):
+            return [detect(model, frames, times, lo, hi, c) for c in colors]
     if model is None:
-        from curling_score.detect import sidemodel
         model = sidemodel.default_model()
     top, bot = _band(view)
     out = {"red": [], "yellow": []}
-    t = t0
-    while t < t1:
-        frames, times = decode(video, view.rect, t, min(t + SCAN_CHUNK_S, t1), fps)
-        if len(frames):
-            for color in out:
-                out[color] += stone_points(
-                    view, times, detect(model, frames, times, top, bot, color))
-        t += SCAN_CHUNK_S
+    with ahead:
+        for a, b in spans:
+            frames, times = decode(video, view.rect, a, b, fps)
+            if len(frames):
+                for color, boxes in zip(out, both(model, frames, times, top, bot, tuple(out))):
+                    out[color] += stone_points(view, times, boxes)
     return out
 
 

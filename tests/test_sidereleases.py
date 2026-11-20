@@ -527,6 +527,36 @@ class TestScanPoints:
                            (140.0, 145.0, S.SCAN_FPS)]
         assert len(got["red"]) == 45 * S.SCAN_FPS and got["yellow"] == []
 
+    def test_the_detector_reads_each_stretch_once_and_the_next_decodes_meanwhile(self, monkeypatch):
+        """The scan as a run makes it: no stand-ins, so the detector's one pass
+        gives both colours and the stretches are decoded ahead, the same ones."""
+        from curling_score.detect import longview, sidemodel
+        v = view()
+        decoded, read = [], []
+
+        def decode_now(video, rect, t0, t1, fps, lead):
+            decoded.append((t0, t1, fps))
+            times = [t0 + k / fps for k in range(int((t1 - t0) * fps))]
+            return np.zeros((len(times), 4, 4, 3), np.uint8), times
+
+        def detect_bands(model, frames, times, lo, hi, colors, **kw):
+            read.append((times[0], tuple(colors), lo, hi, kw))
+            row = v.row_for(-1.0 + C.STONE_RADIUS_M)
+            return [[[(v.centre_col_at(row), row, 38.0, 0.9)] if c == "red" else []
+                     for _ in times] for c in colors]
+
+        monkeypatch.setattr(longview, "_decode_now", decode_now)
+        monkeypatch.setattr(sidemodel, "detect_bands", detect_bands)
+        got = S.scan_points("v.mp4", v, 100.0, 145.0, model=object())
+        stretches = [(100.0, 120.0, S.SCAN_FPS), (120.0, 140.0, S.SCAN_FPS),
+                     (140.0, 145.0, S.SCAN_FPS)]
+        assert sorted(decoded) == stretches                 # each once, whichever thread
+        top, bot = S._band(v)
+        assert read == [(t0, ("red", "yellow"), top, bot, {}) for t0, _t1, _fps in stretches]
+        assert len(got["red"]) == 45 * S.SCAN_FPS and got["yellow"] == []
+        assert [t for t, _y, _x in got["red"]] == sorted(t for t, _y, _x in got["red"])
+        assert longview._reading is None                    # its read-ahead is closed again
+
 
 class TestAnalyzeSearchesAShortEnd:
     def test_it_searches_before_the_audit_and_the_shot_list_on_the_thrower_s_camera(self):
