@@ -568,20 +568,20 @@ export function App({ doc, config, cursor, reload }) {
                onChange={e => setPref({ leadIn: Math.max(0, +e.target.value || 0) })} />s
       </label>
       <label className="chk" title="Number each team's rocks 1 to 8, not the end's 1 to 16">
-        <input type="checkbox" id="teamNumbers" checked={ui.teamNumbers}
-               onChange={e => setPref({ teamNumbers: e.target.checked })} /> 1–8 by team
+        <input type="checkbox" id="teamNumbers" checked={ui.rocksByTeam}
+               onChange={e => setPref({ rocksByTeam: e.target.checked })} /> 1–8 by team
       </label>
     </div>
   );
   const flags = <Flags doc={doc} shot={shot} trimmed={ui.ei === 0 ? doc.chart?.ends_trimmed : 0} />;
   const shotChips = (
-    <div className="shots" id="shots">
+    <div className={`shots${shots.length === 16 ? " by-position" : ""}`} id="shots">
       {shots.map((sh, i) => (
         <div key={i} data-i={i} title={sh.label || ""}
              className={`shot ${sh.color} ${isBlank(sh) ? "unknown" : ""} `
                       + `${isGraded(sh) ? "graded" : ""} ${i === ui.si ? "sel" : ""}`}
              onClick={() => goTo(ui.ei, i)}>
-          {isBlank(sh) ? "?" : rockNumber(shots, i, ui.teamNumbers)}
+          {isBlank(sh) ? "?" : rockNumber(shots, i, ui.rocksByTeam)}
         </div>
       ))}
     </div>
@@ -902,7 +902,7 @@ function Header({ doc, config, ui, status, queue, view, shot, dispatch, goTo, de
       {desk && shot ? (
         <span id="rockName">
           <span className={`chip ${shot.color}${isBlank(shot) ? " unknown" : ""}`}>
-            {isBlank(shot) ? "?" : rockNumber(view.ends[ui.ei]?.shots, ui.si, ui.teamNumbers)}
+            {isBlank(shot) ? "?" : rockNumber(view.ends[ui.ei]?.shots, ui.si, ui.rocksByTeam)}
           </span>
           <span className="rn-label">{shot.label || `shot ${shot.number}`}</span>
         </span>
@@ -912,7 +912,7 @@ function Header({ doc, config, ui, status, queue, view, shot, dispatch, goTo, de
                 title="Still being played: each end appears here once it is over">live</span>
         : null}
       <span id="stoneChip" className={shot ? `chip ${shot.color} ${isBlank(shot) ? "unknown" : ""}` : "chip"}
-            hidden={!shot}>{shot ? (isBlank(shot) ? "?" : rockNumber(view.ends[ui.ei]?.shots, ui.si, ui.teamNumbers)) : ""}</span>
+            hidden={!shot}>{shot ? (isBlank(shot) ? "?" : rockNumber(view.ends[ui.ei]?.shots, ui.si, ui.rocksByTeam)) : ""}</span>
       {/* The phone's header says which end this is, and is the way to another:
           a native <select> laid over the words, invisible, so the tap opens
           the phone's own picker (as the watching layout's pager does). Until
